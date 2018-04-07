@@ -1,52 +1,92 @@
 from .detector import GoodFeaturesDetector
 
 class Initialization(object):
-	"""docstring for Initialization"""
+    """docstring for Initialization"""
 
-	SUCCESS = 0
-	FAILURE = 1
-	NO_KEYFRAME = 2
+    SUCCESS = 0
+    FAILURE = 1
+    NO_KEYFRAME = 2
 
-	InitResult = {
-		FAILURE: 'init failed',
-		NO_KEYFRAME: 'no key frame',
-		SUCCESS: 'init succeed'
-	}
+    InitResult = {
+        FAILURE: 'init failed',
+        NO_KEYFRAME: 'no key frame',
+        SUCCESS: 'init succeed'
+    }
 
-	def __init__(self):
-		self.pos_ref = []		# position of reference feature points
-		self.pos_cur = []		# position of current feature points
-		self.dirs = []			# directions of feature points
-		self.frame_ref = None	# reference frame
+    def __init__(self):
+        self.kps_ref = []       # position of reference feature points
+        self.kps_cur = []       # position of current feature points
+        self.dir_ref = []       # directions of feature points
+        self.frm_ref = None # reference frame
 
-	def _reset(self):
-		self.pos_cur = []
-		self.frame_ref = None
+    def _reset(self):
+        self.kps_cur = []
+        self.frm_ref = None
 
-	def add_first_frame(self, frame):
-		self._reset()
-		self.pos_ref, self.dirs = detect_features(frame);
-		if (len(pos_ref) < 100):
-			print('First image has less than 100 features.' \
-				  ' Retry in more textured environment.')
-			return Initialization.FAILURE
+    def _detect_features(self, frame):
+        rows, cols = frame.img.shape
+        d = GoodFeaturesDetector(width=cols, height=rows,
+                                 cell_size=25, pyr_levels=3)
+        fts = d.detect(frame, frame.img_pyr, 0.01)
+        
+        positions = []
+        directions = []
+        for ft in fts:
+           positions.append(ft.uv)
+           directions.append(ft.direction)
+        return (np.array(positions), np.array(directions))
 
-		self.frame_ref = frame
-		self.pos_cur = list(self.pos_ref) # make a copy of pos_ref
-		return Initialization.SUCCESS
-		
-	def detect_features(self, frame):
-		rows, cols = frame.img.shape
-		d = GoodFeaturesDetector(width=cols, height=rows,
-								 cell_size=25, pyr_levels=3)
-		fts = d.detect(frame, frame.img_pyr, 0.01)
-		
-		positions = []
-		directions = []
-		for ft in fts:
-			positions.append(ft.uv)
-			directions.append(ft.direction)
-		return (positions, directions)
+    def _track_klt(self, frm_ref, frm_cur, kps_ref, dir_ref):
+        win_sz = 30.0
+        max_iter = 30
+        eps = 0.001
+        criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS,
+                    max_iter, eps)
 
-	def track_klt(self):
-		pass
+        kps_cur, status, error = cv2.calcOpticalFlowPyrLK(
+                                frm_ref.img_pyr[0], frm_cur.img_pyr[0],
+                                kps_ref, None, winSize=(win_sz, win_sz),
+                                maxLevel=4, criteria=criteria)
+
+        mask = status.flatten() == 1
+        kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
+        dir_ref = dir_ref[mask]
+        dir_cur = np.apply_along_axis(frm_cur.c2f, 1, kps_cur)
+        disparities = np.linalg.norm(kps_ref - kps_cur, axis=1)
+
+        return (kps_ref, kps_cur, dir_ref, dir_cur, disparities)
+
+    def _point2d(self, xyz):
+        return xyz[:2] / xyz[2]
+
+    def computeHomography(self, dir_ref, dir_cur, f, reprojection_threshold):
+        xy_ref = dir_ref[:, :2] / dir_ref[:, 2, np.newaxis]
+        xy_cur = dir_cur[:, :2] / dir_ref[:, 2, np.newaxis]
+
+
+    def add_first_frame(self, frame):
+        self._reset()
+        self.kps_ref, self.dir_ref = self._detect_features(frame)
+        if (len(kps_ref) < 100):
+            print('First image has less than 100 features.' \
+                  ' Retry in more textured environment.')
+            return Initialization.FAILURE
+
+        self.frm_ref = frame
+        self.kps_cur = list(self.kps_ref) # make a copy of kps_ref
+        return Initialization.SUCCESS
+
+    def add_second_frame(self, frm_cur):
+        kps_ref, kps_cur, dir_ref, dir_cur, disparities = self._track_klt(
+            self.frm_ref, frm_cur, self.kps_ref, self.dir_ref)
+        print('Init: KLT tracked:', len(disparities), 'features')
+        
+        if (len(disparities) < 50):
+            return Initialization.FAILURE
+        disparity = np.median(disparities)
+        print('Init: KLT', disparity, 'px average disparity.')
+
+        if (disparity < 50):
+            return Initialization.NO_KEYFRAME
+
+        self.computeHomography()

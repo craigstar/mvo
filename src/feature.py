@@ -11,6 +11,6 @@ class Feature(object):
 		self.frame = frame			# reference frame where feature locates
 		self.uv = uv				# (0, 0), type 'int', position of point in image
 		self.level = level			# the pyrimid level of feature point
-		self.direction = frame.cam.cam2world(uv) # feature point direction, (0, 0, 0)
+		self.direction = frame.c2f(uv) # feature point direction, (0, 0, 0)
 
 		

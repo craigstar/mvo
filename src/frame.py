@@ -23,6 +23,7 @@ class Frame(object):
 			width != self.cam.width or height != self.cam.height):
 			# check image size and type
 			raise Exception(self.ERROR_IMG)
+		# TODO: use cv2.buildOpticalFlowPyramid instead
 		self._create_img_pyramid(img, 5)
 
 	def _create_img_pyramid(self, img_level_0, levels):
@@ -35,3 +36,11 @@ class Frame(object):
 		rows = int(rows / 2)
 		cols = int(cols / 2)
 		return cv2.resize(img, (cols, rows))
+
+	def c2f(self, uv):
+		# convert camera 2d corrdinate to camera 3d
+		return self.cam.cam2world(uv)
+
+	def f2c(self, xyz):
+		# convert camera 3d corrdinate to camera 2d
+		return self.cam.world2cam(xyz)

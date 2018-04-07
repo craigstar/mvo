@@ -3,4 +3,4 @@ from .feature import Feature
 from .frame import Frame
 from .camera import PinholeCamera
 from . import utilities as utils
-from .initilization import Initialization
+from .initialization import Initialization

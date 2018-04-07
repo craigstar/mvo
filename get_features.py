@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import numpy as np
 import cv2
 import time
@@ -29,7 +30,7 @@ print('using: ' + name)
 img = cv2.imread('imgs/left.JPG')
 img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 rows, cols = img_gray.shape
-print 'image shape:', img_gray.shape
+print('image shape:', img_gray.shape)
 
 
 ####### 2.0 create camera, frame and detector #######
@@ -50,8 +51,8 @@ else:
 s = time.time()
 features = d.detect(frame, frame.img_pyr, 0.01)
 e = time.time()
-print 'total time:', e - s
-print 'total features:', len(features)
+print('total time:', e - s)
+print('total features:', len(features))
 
 
 ####### 4.0 draw grid on images #######
@@ -64,7 +65,7 @@ if use_grid:
 if draw_layers:
 	for f in features:
 		scale = 2 ** f.level
-		cv2.circle(imgs[f.level], tuple(f.xy / scale), 2, (0, 255, 0), 1)
+		cv2.circle(imgs[f.level], tuple(f.uv // scale), 2, (0, 255, 0), 1)
 	imgs[0] = cv2.resize(imgs[0], (0, 0), fx=2, fy=2)
 	imgs[1] = cv2.resize(imgs[1], (0, 0), fx=2, fy=2)
 	imgs[2] = cv2.resize(imgs[2], (0, 0), fx=2, fy=2)
@@ -75,7 +76,7 @@ if draw_layers:
 
 ####### 6.0 draw all points in base layer #######
 for f in features:
-	cv2.circle(img, tuple(f.xy), 2 * (f.level + 1), (0, 255, 0), 1)
+	cv2.circle(img, tuple(f.uv), 2 * (f.level + 1), (0, 255, 0), 1)
 img = cv2.resize(img, (0, 0), fx=2, fy=2)
 cv2.imshow(name, img)
 

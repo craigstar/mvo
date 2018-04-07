@@ -1,7 +1,8 @@
 import numpy as np
+import math
 import cv2
 
-from feature import Feature
+from .feature import Feature
 
 class AbstractDetector(object):
 	"""docstring for AbstractDetector"""
@@ -9,8 +10,8 @@ class AbstractDetector(object):
 		super(AbstractDetector, self).__init__()
 		self.cell_size = cell_size
 		self.pyr_levels = pyr_levels
-		self.grid_cols = int(width / cell_size) + 1
-		self.grid_rows = int(height / cell_size) + 1
+		self.grid_cols = math.floor(width / cell_size) + 1
+		self.grid_rows = math.floor(height / cell_size) + 1
 		self.grid_occupancy = np.full(self.grid_cols * self.grid_rows, False)
 
 	def reset_grid(self):
@@ -49,8 +50,8 @@ class FastDetector(AbstractDetector):
 			for kp in kps:
 				x, y = kp.pt
 				x, y = int(x), int(y)
-				row_idx = int(y * scale / self.cell_size)
-				col_idx = int(x * scale / self.cell_size)
+				row_idx = math.floor(y * scale / self.cell_size)
+				col_idx = math.floor(x * scale / self.cell_size)
 				k = np.ravel_multi_index([row_idx, col_idx], grid_shape)
 				if self.grid_occupancy[k]:
 					continue
@@ -86,8 +87,8 @@ class GoodFeaturesDetector(AbstractDetector):
 
 			for kp in kps:
 				x, y = kp[0].astype(int)
-				row_idx = int(y * scale / self.cell_size)
-				col_idx = int(x * scale / self.cell_size)
+				row_idx = math.floor(y * scale / self.cell_size)
+				col_idx = math.floor(x * scale / self.cell_size)
 				k = np.ravel_multi_index([row_idx, col_idx], grid_shape)
 				if self.grid_occupancy[k]:
 					continue
@@ -125,8 +126,8 @@ class SiftDetector(AbstractDetector):
 			for kp in kps:
 				x, y = kp.pt
 				x, y = int(x), int(y)
-				row_idx = int(y * scale / self.cell_size)
-				col_idx = int(x * scale / self.cell_size)
+				row_idx = math.floor(y * scale / self.cell_size)
+				col_idx = math.floor(x * scale / self.cell_size)
 				k = np.ravel_multi_index([row_idx, col_idx], grid_shape)
 				if self.grid_occupancy[k]:
 					continue

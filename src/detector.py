@@ -32,7 +32,7 @@ class FastDetector(AbstractDetector):
 	def __init__(self, width, height, cell_size, pyr_levels):
 		super(FastDetector, self).__init__(width, height, 
 										   cell_size, pyr_levels)
-		self.fast = cv2.FastFeatureDetector_create()
+		self.fast = cv2.FastFeatureDetector_create(20)
 
 	def detect(self, frame, img_pyr, quality_level):
 		grid_shape = (self.grid_rows, self.grid_cols)

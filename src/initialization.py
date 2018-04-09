@@ -1,4 +1,5 @@
 from .detector import GoodFeaturesDetector
+from .homography import Homography
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -57,11 +58,21 @@ class Initialization(object):
         return (kps_ref, kps_cur, dir_ref, dir_cur, disparities)
 
     def _point2d(self, xyz):
-        return xyz[:2] / xyz[2]
+        if xyz.ndim == 1:
+            return xyz[:2] / xyz[2]
+        elif xyz.ndim == 2:
+            return xyz[:, :2] / xyz[:, 2, np.newaxis]
+        else:
+            return np.zeros(2)
 
     def computeHomography(self, dir_ref, dir_cur, f, reprojection_threshold):
-        xy_ref = dir_ref[:, :2] / dir_ref[:, 2, np.newaxis]
-        xy_cur = dir_cur[:, :2] / dir_ref[:, 2, np.newaxis]
+        xy_ref = self._point2d(dir_ref)
+        xy_cur = self._point2d(dir_cur)
+
+
+
+        # H, mask = cv2.findHomography(xy_ref, xy_cur, method=cv2.RANSAC, 
+        #                              ransacReprojThreshold=5.0)
 
 
     def add_first_frame(self, frame):

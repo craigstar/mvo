@@ -68,9 +68,8 @@ class Initialization(object):
     def computeHomography(self, dir_ref, dir_cur, f, reprojection_threshold):
         xy_ref = self._point2d(dir_ref)
         xy_cur = self._point2d(dir_cur)
-
-
-
+        homo = Homography(xy_ref, xy_cur, f, reprojection_threshold)
+        homo.computeSE3fromMatches()
         # H, mask = cv2.findHomography(xy_ref, xy_cur, method=cv2.RANSAC, 
         #                              ransacReprojThreshold=5.0)
 

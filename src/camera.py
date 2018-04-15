@@ -21,6 +21,13 @@ class PinholeCamera(AbstractCamera):
 
 	def get_focal_length(self):
 		return abs(self.fx)
+
+	def K(self):
+		return np.array([
+				[self.fx, 0, self.cx],
+				[0, self.fy, self.cy],
+				[0, 0, 1],
+			])
 		
 	def cam2world(self, uv):
 		if not self.is_distorted:
@@ -47,6 +54,10 @@ class PinholeCamera(AbstractCamera):
 			pass
 
 		return np.array([x, y])
+
+	def compose_projection(self, R, t):
+	    RT = np.hstack((R, t))
+	    return np.matmul(self.K(), RT)
 
 	def undistort_image(self):
 		# TODO

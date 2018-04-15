@@ -21,7 +21,7 @@ Dectors = {
 detector = GOOD_FEATURES
 draw_layers = True
 use_grid = True
-
+cell_size = 25
 name = Dectors[detector]
 print('using: ' + name)
 
@@ -40,11 +40,11 @@ cam = PinholeCamera(width=cols, height=rows,
                     )
 frame = Frame(cam, img_gray, 0.0)
 if detector == FAST:
-    d = FastDetector(width=cols, height=rows, cell_size=25, pyr_levels=3)
+    d = FastDetector(width=cols, height=rows, cell_size=cell_size, pyr_levels=3)
 elif detector == SIFT:
-    d = SiftDetector(width=cols, height=rows, cell_size=25, pyr_levels=3)
+    d = SiftDetector(width=cols, height=rows, cell_size=cell_size, pyr_levels=3)
 else:
-    d = GoodFeaturesDetector(width=cols, height=rows, cell_size=25, pyr_levels=3)
+    d = GoodFeaturesDetector(width=cols, height=rows, cell_size=cell_size, pyr_levels=3)
 
 
 ####### 3.0 detect features #######
@@ -58,7 +58,7 @@ print('total features:', len(features))
 ####### 4.0 draw grid on images #######
 imgs = src.utils.create_img_pyramid(img, 3)
 if use_grid:
-    imgs = src.utils.draw_grid(imgs, 25)
+    imgs = src.utils.draw_grid(imgs, cell_size)
 
 
 ####### 5.0 draw points on each layer #######

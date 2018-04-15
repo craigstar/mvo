@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 
 from .detector import GoodFeaturesDetector
-from .homography import Homography
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -31,7 +30,7 @@ class Initialization(object):
     def _detect_features(self, frame):
         rows, cols = frame.img.shape
         d = GoodFeaturesDetector(width=cols, height=rows,
-                                 cell_size=25, pyr_levels=3)
+                                 cell_size=5, pyr_levels=3)
         fts = d.detect(frame, frame.img_pyr, 0.01)
         
         positions = []
@@ -80,13 +79,12 @@ class Initialization(object):
                                         focal=718.856,
                                         pp=(607.1928, 185.2157),
                                         mask=mask)
-
-        
-
+        return (R, t, mask.flatten() == 1)
 
     def add_first_frame(self, frame):
         self._reset()
         self.kps_ref, self.dir_ref = self._detect_features(frame)
+
         if (len(self.kps_ref) < 100):
             print('First image has less than 100 features.' \
                   ' Retry in more textured environment.')
@@ -100,15 +98,39 @@ class Initialization(object):
         kps_ref, kps_cur, dir_ref, dir_cur, disparities = self._track_klt(
             self.frm_ref, frm_cur, self.kps_ref, self.dir_ref)
         print('Init: KLT tracked:', len(disparities), 'features')
-        
+
         if (len(disparities) < 50):
             return Initialization.FAILURE
         disparity = np.median(disparities)
         print('Init: KLT', disparity, 'px average disparity.')
 
-        if (disparity < 50):
+        if (disparity < 5):
             return Initialization.NO_KEYFRAME
 
+        self.frm_cur = frm_cur      # assign to class member
+
         reprojection_threshold = 2
-        self.compute_RT(self.kps_ref, self.kps_cur, reprojection_threshold)
-        print("Init: Homography RANSAC ", ," inliers.")
+        R, t, mask = self.compute_RT(
+            kps_ref, kps_cur, reprojection_threshold)
+
+        # filter out outliers
+        kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
+        print("Init: Essential RANSAC", np.sum(mask), "inliers.")
+
+        P_ref = self.frm_ref.cam.compose_projection(np.eye(3), np.zeros((3, 1)))
+        P_cur = self.frm_cur.cam.compose_projection(R, t)
+
+        # calculate 3d points
+        pts3d_homo = cv2.triangulatePoints(P_ref, P_cur, kps_ref.T, kps_cur.T).T
+        pts3d = cv2.convertPointsFromHomogeneous(pts3d_homo).reshape((-1, 3))
+
+        # remove points have depth less than 1
+        positive_depth = pts3d[:, 2] > 1
+        pts3d = pts3d[positive_depth]
+
+        # calculate scale
+        scale = 1.0 / np.mean(pts3d[:, 2])
+
+        print(scale)
+
+

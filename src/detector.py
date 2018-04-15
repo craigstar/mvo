@@ -98,7 +98,8 @@ class GoodFeaturesDetector(AbstractDetector):
 
 		for c in corners:
 			if c.score > quality_level * best_eigs[c.level]:
-				fts.append(Feature(frame, np.array([c.x, c.y]), c.level))
+				pt = np.array([c.x, c.y], dtype=np.float32)		# cv2.calcOpticalFlowPyrLK requires float32
+				fts.append(Feature(frame, pt, c.level))
 		self.reset_grid()
 		return fts
 

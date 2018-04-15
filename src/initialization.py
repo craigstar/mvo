@@ -1,3 +1,6 @@
+import numpy as np
+import cv2
+
 from .detector import GoodFeaturesDetector
 from .homography import Homography
 
@@ -8,17 +11,18 @@ class Initialization(object):
     FAILURE = 1
     NO_KEYFRAME = 2
 
-    InitResult = {
+    INIT_RESULT = {
         FAILURE: 'init failed',
         NO_KEYFRAME: 'no key frame',
         SUCCESS: 'init succeed'
     }
 
     def __init__(self):
-        self.kps_ref = []       # position of reference feature points
-        self.kps_cur = []       # position of current feature points
-        self.dir_ref = []       # directions of feature points
-        self.frm_ref = None # reference frame
+        self.kps_ref = []           # position of reference feature points
+        self.kps_cur = []           # position of current feature points
+        self.dir_ref = []           # directions of feature points
+        self.frm_ref = None         # reference frame
+        self.T_cur_from_ref = None  # translation from reference to current
 
     def _reset(self):
         self.kps_cur = []
@@ -38,7 +42,7 @@ class Initialization(object):
         return (np.array(positions), np.array(directions))
 
     def _track_klt(self, frm_ref, frm_cur, kps_ref, dir_ref):
-        win_sz = 30.0
+        win_sz = 30
         max_iter = 30
         eps = 0.001
         criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS,
@@ -65,25 +69,31 @@ class Initialization(object):
         else:
             return np.zeros(2)
 
-    def computeHomography(self, dir_ref, dir_cur, f, reprojection_threshold):
-        xy_ref = self._point2d(dir_ref)
-        xy_cur = self._point2d(dir_cur)
-        homo = Homography(xy_ref, xy_cur, f, reprojection_threshold)
-        homo.computeSE3fromMatches()
-        # H, mask = cv2.findHomography(xy_ref, xy_cur, method=cv2.RANSAC, 
-        #                              ransacReprojThreshold=5.0)
+    def compute_RT(self, pts1, pts2, threshold):
+        E, mask = cv2.findEssentialMat(pts1, pts2,
+                                       focal=718.856,
+                                       pp=(607.1928, 185.2157),
+                                       method=cv2.RANSAC,
+                                       threshold=threshold,
+                                       prob=0.999)
+        n, R, t, mask = cv2.recoverPose(E, pts1, pts2,
+                                        focal=718.856,
+                                        pp=(607.1928, 185.2157),
+                                        mask=mask)
+
+        
 
 
     def add_first_frame(self, frame):
         self._reset()
         self.kps_ref, self.dir_ref = self._detect_features(frame)
-        if (len(kps_ref) < 100):
+        if (len(self.kps_ref) < 100):
             print('First image has less than 100 features.' \
                   ' Retry in more textured environment.')
             return Initialization.FAILURE
 
         self.frm_ref = frame
-        self.kps_cur = list(self.kps_ref) # make a copy of kps_ref
+        self.kps_cur = self.kps_ref.copy() # make a copy of kps_ref
         return Initialization.SUCCESS
 
     def add_second_frame(self, frm_cur):
@@ -99,4 +109,6 @@ class Initialization(object):
         if (disparity < 50):
             return Initialization.NO_KEYFRAME
 
-        self.computeHomography()
+        reprojection_threshold = 2
+        self.compute_RT(self.kps_ref, self.kps_cur, reprojection_threshold)
+        print("Init: Homography RANSAC ", ," inliers.")

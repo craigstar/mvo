@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import itertools
 
+import sophus as sp
+
 class Frame(object):
 	"""docstring for Frame"""
 	id_generator = itertools.count(0)
@@ -16,6 +18,7 @@ class Frame(object):
 		self.img_pyr = []
 		self.id = next(self.id_generator)
 		self.features = []
+		self.T_from_w = sp.SE3()
 		self._init_frame(img)
 
 	def _init_frame(self, img):
@@ -40,6 +43,9 @@ class Frame(object):
 
 	def add_feature(self, feature):
 		self.features.append(feature)
+
+	def pos(self):
+		return self.T_from_w.inverse().translation()
 		
 	def c2f(self, uv):
 		# convert camera 2d corrdinate to camera 3d

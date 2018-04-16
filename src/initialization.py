@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+import sophus as sp
+
 from .detector import GoodFeaturesDetector
 from .feature import Feature
 from .point3d import Point3d
@@ -19,11 +21,11 @@ class Initialization(object):
     }
 
     def __init__(self):
-        self.kps_ref = []           # position of reference feature points
-        self.kps_cur = []           # position of current feature points
-        self.dir_ref = []           # directions of feature points
-        self.frm_ref = None         # reference frame
-        self.T_cur_from_ref = None  # translation from reference to current
+        self.kps_ref = []               # position of reference feature points
+        self.kps_cur = []               # position of current feature points
+        self.dir_ref = []               # directions of feature points
+        self.frm_ref = None             # reference frame
+        self.T_cur_from_ref = sp.SE3()  # translation from reference to current
 
     def _reset(self):
         self.kps_cur = []
@@ -70,7 +72,7 @@ class Initialization(object):
         else:
             return np.zeros(2)
 
-    def compute_RT(self, pts1, pts2, threshold):
+    def _compute_RT(self, pts1, pts2, threshold):
         E, mask = cv2.findEssentialMat(pts1, pts2,
                                        focal=718.856,
                                        pp=(607.1928, 185.2157),
@@ -82,6 +84,24 @@ class Initialization(object):
                                         pp=(607.1928, 185.2157),
                                         mask=mask)
         return (R, t, mask.flatten() == 1)
+
+    def _compose_projection(self, R, t):
+        p_ref = self.frm_ref.cam.compose_projection(np.eye(3), np.zeros((3, 1)))
+        p_cur = self.frm_cur.cam.compose_projection(R, t)
+        return (p_ref, p_cur)
+
+
+    def _triangulate_points(self, P_ref, P_cur, kps_ref, kps_cur):
+        """Calculate 3d points"""
+        pts3d_homo = cv2.triangulatePoints(P_ref, P_cur, kps_ref.T, kps_cur.T).T
+        return cv2.convertPointsFromHomogeneous(pts3d_homo).reshape((-1, 3))
+
+    def _depth_check(self, pts3d, kps_ref, kps_cur):
+        """Remove points have depth less than 1"""
+        valid_depth = pts3d[:, 2] > 1
+        pts3d = pts3d[valid_depth]
+        kps_ref, kps_cur = kps_ref[valid_depth], kps_cur[valid_depth]
+        return (pts3d, kps_ref, kps_cur)
 
     def add_first_frame(self, frame):
         self._reset()
@@ -112,38 +132,53 @@ class Initialization(object):
         self.frm_cur = frm_cur      # assign to class member
 
         reprojection_threshold = 2
-        R, t, mask = self.compute_RT(
+        R, t, mask = self._compute_RT(
             kps_ref, kps_cur, reprojection_threshold)
+
+        # set T
+        self.T_cur_from_ref = self.T_cur_from_ref.trans(*t)
+        self.T_cur_from_ref.setRotationMatrix(R)
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
         print("Init: Essential RANSAC", np.sum(mask), "inliers.")
 
-        P_ref = self.frm_ref.cam.compose_projection(np.eye(3), np.zeros((3, 1)))
-        P_cur = self.frm_cur.cam.compose_projection(R, t)
-
-        # calculate 3d points
-        pts3d_homo = cv2.triangulatePoints(P_ref, P_cur, kps_ref.T, kps_cur.T).T
-        pts3d = cv2.convertPointsFromHomogeneous(pts3d_homo).reshape((-1, 3))
-
-        # remove points have depth less than 1
-        valid_depth = pts3d[:, 2] > 1
-        pts3d = pts3d[valid_depth]
-        kps_ref, kps_cur = kps_ref[valid_depth], kps_cur[valid_depth]
+        P_ref, P_cur = self._compose_projection(R, t)
+        pts3d = self._triangulate_points(P_ref, P_cur, kps_ref, kps_cur)
+        pts3d, kps_ref, kps_cur = self._depth_check(pts3d, kps_ref, kps_cur)
 
         # calculate scale
         scale = 1.0 / np.mean(pts3d[:, 2])
 
+        # calculate current translation
+        frm_cur.T_from_w = self.T_cur_from_ref * self.frm_ref.T_from_w
+        R_mat = frm_cur.T_from_w.rotationMatrix()
+
+        translation = -frm_cur.T_from_w.rotationMatrix() * (self.frm_ref.pos()
+            + scale * (frm_cur.pos() - self.frm_ref.pos()))
+        print(frm_cur.T_from_w.rotationMatrix())
+
+        # TODO this is all zeros
+        frm_cur.T_from_w.setRotationMatrix(R_mat)
+
+        T_world_cur = frame_cur.T_from_w.inverse()
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
-                # add Feature to frame
-                new_point = Point3d(pts3d[i])
-                Feature(self.frm_ref, kps_ref[i],
+                # create Point3d Feature, and add Feature to frame, to Point3d
+                # TODO: change coord
+                pos = T_world_cur.matrix()[:3] * pts3d[i, np.newaxis] * scale
+                new_point = Point3d(pos)
+                feature_ref = Feature(self.frm_ref, kps_ref[i],
                         pt3d=new_point,
-                        direction=self.dir_ref[i])
-                
-                print(kps_ref[i])
-        print(scale)
+                        direction=dir_ref[i])
+                self.frm_ref.add_feature(feature_ref)
+                new_point.add_frame_ref(feature_ref)
+
+                feature_cur = Feature(self.frm_cur, kps_cur[i],
+                        pt3d=new_point,
+                        direction=dir_cur[i])
+                self.frm_cur.add_feature(feature_cur)
+                new_point.add_frame_ref(feature_cur)
 
 

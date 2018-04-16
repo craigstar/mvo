@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 
 from .detector import GoodFeaturesDetector
+from .feature import Feature
+from .point3d import Point3d
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -125,12 +127,23 @@ class Initialization(object):
         pts3d = cv2.convertPointsFromHomogeneous(pts3d_homo).reshape((-1, 3))
 
         # remove points have depth less than 1
-        positive_depth = pts3d[:, 2] > 1
-        pts3d = pts3d[positive_depth]
+        valid_depth = pts3d[:, 2] > 1
+        pts3d = pts3d[valid_depth]
+        kps_ref, kps_cur = kps_ref[valid_depth], kps_cur[valid_depth]
 
         # calculate scale
         scale = 1.0 / np.mean(pts3d[:, 2])
 
+        for i in range(len(kps_ref)):
+            if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
+                self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
+                # add Feature to frame
+                new_point = Point3d(pts3d[i])
+                Feature(self.frm_ref, kps_ref[i],
+                        pt3d=new_point,
+                        direction=self.dir_ref[i])
+                
+                print(kps_ref[i])
         print(scale)
 
 

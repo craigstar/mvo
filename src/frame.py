@@ -15,6 +15,7 @@ class Frame(object):
 		self.timestamp = timestamp
 		self.img_pyr = []
 		self.id = next(self.id_generator)
+		self.features = []
 		self._init_frame(img)
 
 	def _init_frame(self, img):
@@ -37,6 +38,9 @@ class Frame(object):
 		cols = int(cols / 2)
 		return cv2.resize(img, (cols, rows))
 
+	def add_feature(self, feature):
+		self.features.append(feature)
+		
 	def c2f(self, uv):
 		# convert camera 2d corrdinate to camera 3d
 		return self.cam.cam2world(uv)

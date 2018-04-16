@@ -6,6 +6,11 @@ class AbstractCamera(object):
 		self.width = width
 		self.height = height
 
+	def is_in_frame(self, uv, boundary=0):
+		ll = np.array([boundary, boundary])  							# lower-left
+		ur = np.array([self.width - boundary, self.height - boundary])  # upper-right
+		return np.all(np.logical_and(ll <= uv, uv <= ur))
+
 class PinholeCamera(AbstractCamera):
 	"""docstring for PinholeCamera"""
 	def __init__(self, width, height, fx, fy, cx, cy, k1=0.0, k2=0.0, p1=0.0, p2=0.0, k3=0.0):

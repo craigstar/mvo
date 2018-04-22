@@ -60,7 +60,7 @@ class PinholeCamera(AbstractCamera):
 
 		return np.array([x, y])
 
-	def compose_projection(self, R, t):
+	def compose_P(self, R, t):
 	    RT = np.hstack((R, t))
 	    return np.matmul(self.K(), RT)
 

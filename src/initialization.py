@@ -1,11 +1,10 @@
 import numpy as np
 import cv2
 
-import sophus as sp
-
 from .detector import GoodFeaturesDetector
 from .feature import Feature
 from .point3d import Point3d
+from . import my_sophus as sp
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -86,8 +85,8 @@ class Initialization(object):
         return (R, t, mask.flatten() == 1)
 
     def _compose_projection(self, R, t):
-        p_ref = self.frm_ref.cam.compose_projection(np.eye(3), np.zeros((3, 1)))
-        p_cur = self.frm_cur.cam.compose_projection(R, t)
+        p_ref = self.frm_ref.cam.compose_P(np.eye(3), np.zeros((3, 1)))
+        p_cur = self.frm_cur.cam.compose_P(R, t)
         return (p_ref, p_cur)
 
 
@@ -134,10 +133,11 @@ class Initialization(object):
         reprojection_threshold = 2
         R, t, mask = self._compute_RT(
             kps_ref, kps_cur, reprojection_threshold)
-
+        np.set_printoptions(suppress=True)
         # set T
-        self.T_cur_from_ref = self.T_cur_from_ref.trans(*t)
-        self.T_cur_from_ref.setRotationMatrix(R)
+        self.T_cur_from_ref = sp.SE3(R, t)
+        print(R, t)
+        print('T_cur_from_ref', self.T_cur_from_ref)
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
@@ -161,13 +161,14 @@ class Initialization(object):
         # TODO this is all zeros
         frm_cur.T_from_w.setRotationMatrix(R_mat)
 
-        T_world_cur = frame_cur.T_from_w.inverse()
+        T_world_cur = frm_cur.T_from_w.inverse()
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
                 # TODO: change coord
-                pos = T_world_cur.matrix()[:3] * pts3d[i, np.newaxis] * scale
+                print(T_world_cur)
+                pos = np.matmul(T_world_cur, pts3d[i, np.newaxis] * scale)
                 new_point = Point3d(pos)
                 feature_ref = Feature(self.frm_ref, kps_ref[i],
                         pt3d=new_point,

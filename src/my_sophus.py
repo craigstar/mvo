@@ -1,13 +1,16 @@
-import sophus as sp
+import numpy as np
+
+import sophus
 
 
-class SE3(sp.SE3):
+class SE3(sophus.SE3):
     """Improvment for SE3"""
-    def __init__(self, *args):
+    def __new__(cls, *args, **kwargs):
+        # Accept R, t as input as well
         if len(args) == 2:
             R, t = args
-            args = np.eye(4)
-            args[:3, :3] = R
-            args[:2, 3] = t
-        print('args is', args)
-        super(SE3, self).__init__(*args)
+            T = np.eye(4)
+            T[:3, :3] = R
+            T[:3, 3] = t.flatten()
+            args = (T,)
+        return super().__new__(cls, *args, **kwargs)

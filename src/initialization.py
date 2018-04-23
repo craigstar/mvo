@@ -136,8 +136,6 @@ class Initialization(object):
         np.set_printoptions(suppress=True)
         # set T
         self.T_cur_from_ref = sp.SE3(R, t)
-        print(R, t)
-        print('T_cur_from_ref', self.T_cur_from_ref)
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]

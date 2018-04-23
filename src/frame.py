@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import itertools
 
-import sophus as sp
+from . import my_sophus as sp
 
 class Frame(object):
 	"""docstring for Frame"""

@@ -1,22 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-"""
-@organization:            Continental Confidential
-@copyright:         Copyright (c) Continental AG. 2018
-
-@license:       This software is furnished under license and may be used or
-                copied only in accordance with the terms of such license
-
-@file           log_wrapper.py
-@brief          log module, controls the log for the whole project
-
-@author         Chengxing.Zhang@ygomi.com
-@date           17/04/2018
-
-@version:       1.0
-"""
-
 import os
 import sys
 import logging

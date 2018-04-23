@@ -97,7 +97,7 @@ class Initialization(object):
 
     def _depth_check(self, pts3d, kps_ref, kps_cur):
         """Remove points have depth less than 1"""
-        valid_depth = pts3d[:, 2] > 1
+        valid_depth = pts3d[:, 2] > 0
         pts3d = pts3d[valid_depth]
         kps_ref, kps_cur = kps_ref[valid_depth], kps_cur[valid_depth]
         return (pts3d, kps_ref, kps_cur)
@@ -128,12 +128,13 @@ class Initialization(object):
         if (disparity < 5):
             return Initialization.NO_KEYFRAME
 
+        # TODO: assign later
         self.frm_cur = frm_cur      # assign to class member
 
         reprojection_threshold = 2
         R, t, mask = self._compute_RT(
             kps_ref, kps_cur, reprojection_threshold)
-        np.set_printoptions(suppress=True)
+        
         # set T
         self.T_cur_from_ref = sp.SE3(R, t)
 
@@ -148,25 +149,24 @@ class Initialization(object):
         # calculate scale
         scale = 1.0 / np.mean(pts3d[:, 2])
 
-        # calculate current translation
+        # calculate current T from world
         frm_cur.T_from_w = self.T_cur_from_ref * self.frm_ref.T_from_w
-        R_mat = frm_cur.T_from_w.rotationMatrix()
 
-        translation = -frm_cur.T_from_w.rotationMatrix() * (self.frm_ref.pos()
-            + scale * (frm_cur.pos() - self.frm_ref.pos()))
-        print(frm_cur.T_from_w.rotationMatrix())
+        # calculate current translation by scale
+        ref_pos, cur_pos = self.frm_ref.pos(), frm_cur.pos()
+        new_pos = ref_pos + scale * (cur_pos - ref_pos)
+        translation = np.matmul(-frm_cur.T_from_w.rotationMatrix(), new_pos)
+        frm_cur.T_from_w = frm_cur.T_from_w.trans(translation)
 
-        # TODO this is all zeros
-        frm_cur.T_from_w.setRotationMatrix(R_mat)
-
+        # T to translate camera points to world coordinate
         T_world_cur = frm_cur.T_from_w.inverse()
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
-                # TODO: change coord
+                # TODO: determine this is current or reference
                 print(T_world_cur)
-                pos = np.matmul(T_world_cur, pts3d[i, np.newaxis] * scale)
+                pos = T_world_cur * (pts3d * scale)
                 new_point = Point3d(pos)
                 feature_ref = Feature(self.frm_ref, kps_ref[i],
                         pt3d=new_point,

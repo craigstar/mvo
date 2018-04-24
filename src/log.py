@@ -30,17 +30,20 @@ else: #pragma: no cover
 NOTSET = 0
 DEBUG = 1
 INFO = 2
-WARNING = 3
+WARN = 3
 ERROR = 4
 CRITICAL = 5
+LOGOFF = 6
+
 
 LEVEL = {
     NOTSET: logging.NOTSET,
     DEBUG: logging.DEBUG,
     INFO: logging.INFO,
-    WARNING: logging.WARNING,
+    WARN: logging.WARNING,
     ERROR: logging.ERROR,
-    CRITICAL: logging.CRITICAL
+    CRITICAL: logging.CRITICAL,
+    LOGOFF: 'turn logging off'
 }
 
 MODE_FILE = 1
@@ -60,9 +63,17 @@ project_name = ''   # use changable type, otherwise can not be modified
 def pack_args(func):
     """Decorator to upack args and concatenate to string"""
     def wrapper(*args, **kwargs):
-        now = str(datetime.now())[:-3].encode()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         return func(' '.join(map(str, args)), extra={'time':now})
     return wrapper
+
+def do_nothing(*args, **kwargs):
+    """Do nothing, this is to turn logging off"""
+    pass
+
+def do_nothing_5():
+    """Return do_nothing in tuple"""
+    return (do_nothing, do_nothing, do_nothing, do_nothing, do_nothing)
 
 def init_log(name, level, path='', mode=MODE_ALL):
     """
@@ -78,23 +89,25 @@ def init_log(name, level, path='', mode=MODE_ALL):
     --------------------------------
     """
     global project_name         # need to assign this later
+    project_name = name
+
+    # if level if off, then do nothing
+    if level == LOGOFF:
+        return do_nothing_5()
 
     # if log has been inited, then return None
     if len(loggers):
         return loggers.get(project_name)
 
-    # if path is not given, use console only as the log place
-    if not path:
-        path = os.path.dirname(sys.modules['__main__'].__file__)
-        datefmt = '%Y-%m-%d_%H-%M-%S'
-        strtime = datetime.now().strftime(datefmt)
-        filename = 'Log_{}_{}.txt'.format(project_name, strtime)
-        
-        i = 0
-        while os.path.exist(filename):
-            i += 1
-            filename = filename.replace('.txt', '-{}.txt'.format(i))
+    # default path is the folder of __main__
+    datefmt = '%Y-%m-%d_%H-%M-%S'
+    strtime = datetime.now().strftime(datefmt)
+    filename = 'Log_{}_{}.txt'.format(name, strtime)
 
+    # if path is not given, use default
+    if path and os.path.exists(path):
+        filename = os.path.normpath(path) + '/' + filename
+        
     logger = logging.getLogger(name)
     logger.setLevel(LEVEL[level])
 
@@ -113,8 +126,7 @@ def init_log(name, level, path='', mode=MODE_ALL):
         stream.setFormatter(formatter)
         logger.addHandler(stream)
 
-    # assign project name, push logger to dictionary
-    project_name = name
+    # push logger to dictionary
     loggers[name] = logger
 
     return (pack_args(logger.debug), pack_args(logger.info),
@@ -129,9 +141,10 @@ def create_sub_logger(name):
     Out: logger instance from logging module
     ----------------------------------------
     """
+
     if (not name.startswith(project_name + '.') or
         name in loggers or not len(loggers)):
-        return
+        return do_nothing_5()
 
     sub_logger = logging.getLogger(name)
     loggers[name] = sub_logger
@@ -149,9 +162,13 @@ def get_logger(name=''):
     Out: logger instance or None
     ----------------------------------------
     """
+    if not len(loggers):
+        return do_nothing_5()
+
     if not name:
         name = project_name
     logger = loggers.get(name)
+
     return (pack_args(logger.debug), pack_args(logger.info),
             pack_args(logger.warning), pack_args(logger.error),
             pack_args(logger.critical))

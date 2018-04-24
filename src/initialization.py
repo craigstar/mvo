@@ -5,6 +5,9 @@ from .detector import GoodFeaturesDetector
 from .feature import Feature
 from .point3d import Point3d
 from . import my_sophus as sp
+from . import log
+
+LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL = log.init_log('mvo', log.DEBUG, mode=log.MODE_CONSOLE)
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -107,8 +110,8 @@ class Initialization(object):
         self.kps_ref, self.dir_ref = self._detect_features(frame)
 
         if (len(self.kps_ref) < 100):
-            print('First image has less than 100 features.' \
-                  ' Retry in more textured environment.')
+            LOG_ERROR('First image has less than 100 features.' \
+                      ' Retry in more textured environment.')
             return Initialization.FAILURE
 
         self.frm_ref = frame
@@ -118,7 +121,7 @@ class Initialization(object):
     def add_second_frame(self, frm_cur):
         kps_ref, kps_cur, dir_ref, dir_cur, disparities = self._track_klt(
             self.frm_ref, frm_cur, self.kps_ref, self.dir_ref)
-        print('Init: KLT tracked:', len(disparities), 'features')
+        LOG_INFO('Init: KLT tracked:', len(disparities), 'features')
 
         if (len(disparities) < 50):
             return Initialization.FAILURE
@@ -159,25 +162,21 @@ class Initialization(object):
         frm_cur.T_from_w = frm_cur.T_from_w.trans(translation)
 
         # T to translate camera points to world coordinate
-        T_world_cur = frm_cur.T_from_w.inverse()
+        T_world_ref = self.frm_ref.T_from_w.inverse()
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
-                # TODO: determine this is current or reference
-                print(T_world_cur)
-                pos = T_world_cur * (pts3d * scale)
+                pos = T_world_ref * (pts3d * scale)
                 new_point = Point3d(pos)
                 feature_ref = Feature(self.frm_ref, kps_ref[i],
-                        pt3d=new_point,
-                        direction=dir_ref[i])
+                                      pt3d=new_point,
+                                      direction=dir_ref[i])
                 self.frm_ref.add_feature(feature_ref)
                 new_point.add_frame_ref(feature_ref)
 
                 feature_cur = Feature(self.frm_cur, kps_cur[i],
-                        pt3d=new_point,
-                        direction=dir_cur[i])
+                                      pt3d=new_point,
+                                      direction=dir_cur[i])
                 self.frm_cur.add_feature(feature_cur)
                 new_point.add_frame_ref(feature_cur)
-
-

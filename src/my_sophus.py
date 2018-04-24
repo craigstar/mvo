@@ -20,9 +20,12 @@ class SE3(sophus.SE3):
     def __mul__(self, other):
         # Accept 3d vec as input
         if isinstance(other, np.ndarray):
-            assert len(other) == 3
-            other = np.append(other.flatten(), [1])
-            return np.matmul(self.matrix()[:3], other)
+            if other.ndim == 1:
+                other = np.append(other.flatten(), [1])
+                return np.matmul(self.matrix()[:3], other)
+            else:
+                other = np.hstack((other, np.ones((len(other), 1)))).T
+                return np.matmul(self.matrix()[:3], other).T
 
         return SE3(super(SE3, self).__mul__(other).matrix())
 
@@ -88,6 +91,11 @@ class SE3(sophus.SE3):
         mat[2, 3] = z
         return SE3(mat)
 
+    def inverse(self):
+        """Return inverse of T"""
+        mat = super(SE3, self).inverse().matrix()
+        return SE3(mat) 
+
 
 if __name__ == '__main__':
     """some unit test"""
@@ -104,7 +112,11 @@ if __name__ == '__main__':
     # print(pt1)
 
     t1 = np.array([10, 20, 20])
-    print(T.trans(t1))
+    # print(T.trans(t1))
 
-    print(T.trans(10, 20, 20))
-    print(T.transBy(10, 20, 20))
+    # print(T.trans(10, 20, 20))
+    # print(T.transBy(10, 20, 20))
+
+    pts = np.arange(15).reshape((-1, 3))
+    pts_new = T * pts
+    print(pts_new)

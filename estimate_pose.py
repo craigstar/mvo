@@ -14,7 +14,7 @@ def getName(k):
     return name0 + sufix, name1 + sufix
 
 ####### 1.0 read images #######
-path = '../../dataset/sequences/00/image_0/'
+path = '../slam/dataset/sequences/00/image_0/'
 init = Initialization()
 
 for i in range(1):
@@ -39,7 +39,9 @@ for i in range(1):
 
 
     ####### 3.0 initialize pose estimator #######
+    s = time.time()
     init.add_first_frame(first_frame)
     init.add_second_frame(second_frame)
-
+    e = time.time()
+    print('time elapsed:', e-s)
 # print(init.dir_ref)

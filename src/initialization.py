@@ -110,6 +110,7 @@ class Initialization(object):
         from time import time
         self._reset()
         self.kps_ref, self.dir_ref = self._detect_features(frame)
+        LOG_INFO(len(self.kps_ref), 'features detected in 1st frame')
 
         if (len(self.kps_ref) < 100):
             LOG_ERROR('First image has less than 100 features.' \
@@ -126,6 +127,7 @@ class Initialization(object):
         LOG_INFO('Init: KLT tracked:', len(disparities), 'features')
 
         if (len(disparities) < 50):
+            LOG_ERROR('Error, number of features < 50')
             return Initialization.FAILURE
         disparity = np.median(disparities)
         LOG_INFO('Init: KLT', disparity, 'px average disparity.')
@@ -146,14 +148,16 @@ class Initialization(object):
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
-        print("Init: Essential RANSAC", np.sum(mask), "inliers.")
+        LOG_INFO("Init: Essential RANSAC", np.sum(mask), "inliers.")
 
         P_ref, P_cur = self._compose_projection(R, t)
         pts3d = self._triangulate_points(P_ref, P_cur, kps_ref, kps_cur)
         pts3d, kps_ref, kps_cur = self._depth_check(pts3d, kps_ref, kps_cur)
+        LOG_INFO('valid 3d points:', len(pts3d))
 
         # calculate scale
         scale = 1.0 / np.mean(pts3d[:, 2])
+        LOG_INFO('scale is:', scale)
 
         # calculate current T from world
         frm_cur.T_from_w = self.T_cur_from_ref * self.frm_ref.T_from_w
@@ -163,6 +167,7 @@ class Initialization(object):
         new_pos = ref_pos + scale * (cur_pos - ref_pos)
         translation = np.matmul(-frm_cur.T_from_w.rotationMatrix(), new_pos)
         frm_cur.T_from_w = frm_cur.T_from_w.trans(translation)
+        LOG_INFO('current pose:\n', frm_cur.T_from_w)
 
         # T to translate camera points to world coordinate
         T_world_ref = self.frm_ref.T_from_w.inverse()

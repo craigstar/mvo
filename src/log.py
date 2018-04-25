@@ -12,7 +12,7 @@ from datetime import datetime
 #   We need to REWRITE the tracing frame DEPTH to track deeper one layer.
 #   This code is just copied from logging.py library but modified depth.
 #---------------------------------------------------------------------------
-if not hasattr(sys, '_getframe'):
+if hasattr(sys, '_getframe'):
     logging.currentframe = lambda: sys._getframe(5)
 else: #pragma: no cover
     def currentframe():

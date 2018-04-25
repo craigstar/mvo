@@ -28,7 +28,6 @@ for i in range(1):
     rows, cols = gray0.shape
 
     ####### 2.0 create camera, frames #######
-
     cam = PinholeCamera(width=cols, height=rows,
                         fx=718.856, fy=718.856, 
                         cx=607.1928, cy=185.2157
@@ -38,9 +37,9 @@ for i in range(1):
     second_frame = Frame(cam, gray1, 0.0)
 
     ####### 3.0 initialize pose estimator #######
-    # s = time.time()
+    s = time.time()
     init.add_first_frame(first_frame)
-    # e = time.time()
+    e = time.time()
     init.add_second_frame(second_frame)
-    # print('time elapsed:', e-s)
+    print('time elapsed:', e-s)
 # print(init.dir_ref)

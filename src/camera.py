@@ -1,10 +1,13 @@
 import numpy as np
 
+from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
+
 class AbstractCamera(object):
 	"""docstring for AbstractCamera"""
 	def __init__(self, width, height):
 		self.width = width
 		self.height = height
+		LOG_INFO('Camera width:', width, 'height:', height)
 
 	def is_in_frame(self, uv, boundary=0):
 		ll = np.array([boundary, boundary])  							# lower-left
@@ -23,6 +26,11 @@ class PinholeCamera(AbstractCamera):
 		self.is_distorted = abs(k1) > 0.0000001
 		self.cvK = np.array([fx, 0, cx, 0, fy, cy, 0, 0, 1], dtype=float).reshape(3,3)
 		self.cvD = np.array([k1, k2, p1, p2, k3], dtype=float)
+		LOG_INFO('Pinhole Camera fx:', fx, 'fy:', fy, 'cx:', cx, 'cy:', cy)
+		if self.is_distorted:
+			LOG_INFO('Distortion:', self.cvD)
+		else:
+			LOG_INFO('No distortion')
 
 	def get_focal_length(self):
 		return abs(self.fx)

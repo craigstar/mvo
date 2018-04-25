@@ -5,9 +5,10 @@ from .detector import GoodFeaturesDetector
 from .feature import Feature
 from .point3d import Point3d
 from . import my_sophus as sp
+from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 from . import log
 
-LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL = log.init_log('mvo', log.DEBUG, mode=log.MODE_CONSOLE)
+log.init_log('mvo', log.DEBUG, mode=log.MODE_CONSOLE)
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -106,6 +107,7 @@ class Initialization(object):
         return (pts3d, kps_ref, kps_cur)
 
     def add_first_frame(self, frame):
+        from time import time
         self._reset()
         self.kps_ref, self.dir_ref = self._detect_features(frame)
 
@@ -126,13 +128,14 @@ class Initialization(object):
         if (len(disparities) < 50):
             return Initialization.FAILURE
         disparity = np.median(disparities)
-        print('Init: KLT', disparity, 'px average disparity.')
+        LOG_INFO('Init: KLT', disparity, 'px average disparity.')
 
         if (disparity < 5):
+            LOG_ERROR('Error, disparity < 5')
             return Initialization.NO_KEYFRAME
 
-        # TODO: assign later
-        self.frm_cur = frm_cur      # assign to class member
+        # assign to class member
+        self.frm_cur = frm_cur
 
         reprojection_threshold = 2
         R, t, mask = self._compute_RT(

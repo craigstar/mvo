@@ -3,13 +3,11 @@ import cv2
 import itertools
 
 from . import my_sophus as sp
+from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 
 class Frame(object):
 	"""docstring for Frame"""
 	id_generator = itertools.count(0)
-
-	ERROR_IMG = "Frame: provided image has not the same size as the camera mod " \
-				"el or image is not grayscale"
 
 	def __init__(self, cam, img, timestamp):
 		self.cam = cam
@@ -26,9 +24,11 @@ class Frame(object):
 		if (not img.size or img.dtype != np.uint8 or
 			width != self.cam.width or height != self.cam.height):
 			# check image size and type
-			raise Exception(self.ERROR_IMG)
+			LOG_ERROR("""Frame: provided image has not the same size as the camera model
+						 or image is not grayscale""")
 		# TODO: use cv2.buildOpticalFlowPyramid instead
 		self._create_img_pyramid(img, 5)
+		LOG_INFO('Image pyramid of', 5, 'created. Frame id:', self.id)
 
 	def _create_img_pyramid(self, img_level_0, levels):
 		self.img_pyr.append(img_level_0)

@@ -79,7 +79,7 @@ class GoodFeaturesDetector(AbstractDetector):
 		corners = [Corner(0, 0, 0, 0) for i in range(n_grids)]
 		best_eigs = []
 		fts = []
-		
+
 		for level in range(self.pyr_levels):
 			scale = 2 ** level
 			eigs = cv2.cornerMinEigenVal(img_pyr[0], 3)

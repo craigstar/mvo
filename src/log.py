@@ -55,9 +55,9 @@ MODE = {
     MODE_ALL: 'print log in both file and console'
 }
 
-project_name = ''   # use changable type, otherwise can not be modified
+_project_name = ''   # use changable type, otherwise can not be modified
 
-def pack_args(func):
+def _pack_args(func):
     """Decorator to upack args and concatenate to string"""
     def wrapper(*args, **kwargs):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
@@ -67,11 +67,11 @@ def pack_args(func):
 # these are root logger at default
 # users import these variables directly
 # it only log after init_log function has been called properly
-LOG_DEBUG = pack_args(logging.debug)
-LOG_INFO = pack_args(logging.info)
-LOG_WARN = pack_args(logging.warn)
-LOG_ERROR = pack_args(logging.error)
-LOG_CRITICAL = pack_args(logging.critical)
+LOG_DEBUG = _pack_args(logging.debug)
+LOG_INFO = _pack_args(logging.info)
+LOG_WARN = _pack_args(logging.warn)
+LOG_ERROR = _pack_args(logging.error)
+LOG_CRITICAL = _pack_args(logging.critical)
 
 def init_log(name, level, path='', mode=MODE_ALL):
     """
@@ -84,10 +84,10 @@ def init_log(name, level, path='', mode=MODE_ALL):
     In: (str, int, str, int)
     --------------------------------
     """
-    global project_name         # need to assign this later
+    global _project_name         # need to assign this later
 
     # if level if off or log has been inited, then do nothing
-    if level == LOGOFF or project_name:
+    if level == LOGOFF or _project_name:
         return
 
     # default path is the folder of __main__
@@ -108,7 +108,7 @@ def init_log(name, level, path='', mode=MODE_ALL):
     logger.setLevel(LEVEL[level])
     logger.name = name
 
-    project_name = name
+    _project_name = name
 
     # choose to log in file or console or both
     if mode & MODE_FILE:
@@ -126,7 +126,7 @@ def init_log(name, level, path='', mode=MODE_ALL):
 
 def get_name():
     """Get root name, also project name"""
-    return project_name
+    return _project_name
 
 def get_logger():
     """Return wrapped logging methods"""

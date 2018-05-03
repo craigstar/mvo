@@ -39,4 +39,5 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
-src.SparseImgAlign(4, 1, 30, SparseImgAlign.GaussNewton, False, False)
+img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
+img_align_n_tracked = img_align.run(second_frame, third_frame)

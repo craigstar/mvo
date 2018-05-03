@@ -15,7 +15,7 @@ def getName(k):
     return name0 + sufix, name1 + sufix
 
 ####### 1.0 read images #######
-path = '../../dataset/sequences/00/image_0/'
+path = '../slam/dataset/sequences/00/image_0/'
 init = Initialization()
 
 for i in range(1):

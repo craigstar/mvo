@@ -29,8 +29,7 @@ rows, cols = gray0.shape
 ####### 2.0 create camera, frames #######
 cam = PinholeCamera(width=cols, height=rows,
                     fx=718.856, fy=718.856, 
-                    cx=607.1928, cy=185.2157
-                    )
+                    cx=607.1928, cy=185.2157)
 
 first_frame = Frame(cam, gray0, 0.0)
 second_frame = Frame(cam, gray1, 0.0)

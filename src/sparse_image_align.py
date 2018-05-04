@@ -56,6 +56,12 @@ class SparseImgAlign(NLLSSolver):
         """
         print('hello')
 
+    def _solve(self):
+        return True
+
+    def _update(self):
+        pass
+
     def _start_iteration(self):
         pass
 

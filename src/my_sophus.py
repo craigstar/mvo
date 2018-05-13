@@ -14,6 +14,8 @@ class SE3(sophus.SE3):
             T[:3, :3] = R
             T[:3, 3] = t.flatten()
             args = (T,)
+        elif len(args) > 0 and isinstance(args[0], cls):
+            args = (args[0].matrix(),)
         return super(SE3, cls).__new__(cls, *args, **kwargs)
 
 

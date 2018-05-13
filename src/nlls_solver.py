@@ -39,6 +39,7 @@ class NLLSSolver(object):
 
         self._H = np.zeros((self.DIM, self.DIM), dtype=np.float32)      # Hessian approximation
         self._Jres = np.zeros((self.DIM, 1), dtype=np.float32)          # Jacobian x Residual
+        self._x = np.zeros((self.DIM, 1), dtype=np.float32)             # update variable
         self._have_prior = False
         self._chi2 = 0
 
@@ -65,11 +66,14 @@ class NLLSSolver(object):
 
         # calculate weight scale
         if self._use_weight:
+            LOG_INFO('Using weight scale')
             self._compute_residuals(model, False, True)
 
         old_model = sp.SE3(model.matrix())
+        LOG_INFO('Old model:\n', old_model)
 
         for i in range(self._n_iter):
+            print(i, 'iter', 'total: ', self._n_iter)
             self._rho = 0
             self._start_iteration()
 
@@ -97,7 +101,7 @@ class NLLSSolver(object):
                 model = old_model
                 break
 
-            new_model = update(model)
+            new_model = self._update(model)
             old_model = model
             model = new_model 
             

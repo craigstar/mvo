@@ -8,7 +8,7 @@ from . import my_sophus as sp
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 from . import log
 
-log.init_log('mvo', log.DEBUG, mode=log.MODE_CONSOLE)
+# log.init_log('mvo', log.DEBUG, mode=log.MODE_CONSOLE)
 
 class Initialization(object):
     """docstring for Initialization"""
@@ -171,12 +171,12 @@ class Initialization(object):
 
         # T to translate camera points to world coordinate
         T_world_ref = self.frm_ref.T_from_w.inverse()
+        pts3d_ref = T_world_ref * (pts3d * scale)
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
-                pos = T_world_ref * (pts3d * scale)
-                new_point = Point3d(pos)
+                new_point = Point3d(pts3d_ref[i])
                 feature_ref = Feature(self.frm_ref, kps_ref[i],
                                       pt3d=new_point,
                                       direction=dir_ref[i])

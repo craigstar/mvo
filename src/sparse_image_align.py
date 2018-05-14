@@ -21,7 +21,7 @@ class SparseImgAlign(NLLSSolver):
         self._patch_area = self._patch_size ** 2
 
         self._have_ref_patch_cache = False
-        self._jacobian_cache = np.zeros((6, 0), dtype=np.float64)
+        self._jacobian_cache = np.zeros((0, self._patch_area, 6), dtype=np.float64)
         self._ref_patch_cache = np.zeros((0, self._patch_area), dtype=np.float32)
         self._visible_fts = np.full(0, False)
 
@@ -44,7 +44,7 @@ class SparseImgAlign(NLLSSolver):
 
         N = len(frm_ref.features)
         self._ref_patch_cache.resize(N, self._patch_area)
-        self._jacobian_cache.resize(6, N * self._patch_area)
+        self._jacobian_cache.resize(N, self._patch_area, 6)
         self._visible_fts = np.full(N, False)
 
         # identity matrix at initial
@@ -85,7 +85,7 @@ class SparseImgAlign(NLLSSolver):
             depth = np.linalg.norm(ft.point.pos - pos_ref)
             xyz_ref = ft.direction * depth
 
-            J = Frame.jacobian_xyz2uv(xyz_ref)
+            J_frm = Frame.jacobian_xyz2uv(xyz_ref)
             
             subpix_u_ref = u_ref - u_ref_i
             subpix_v_ref = v_ref - v_ref_i
@@ -93,7 +93,6 @@ class SparseImgAlign(NLLSSolver):
             w01 = subpix_u_ref * (1 - subpix_v_ref)
             w10 = (1 - subpix_u_ref) * subpix_v_ref
             w11 = subpix_u_ref * subpix_v_ref
-            pixel_counter = 0
 
             mask_x = np.array([[-w00, -w01, w00, w01],
                                [-w00, -w01, w00, w01]], dtype=np.float64)
@@ -103,13 +102,16 @@ class SparseImgAlign(NLLSSolver):
             img_patch_y = img_ref[v_ref_i - self._patch_halfsize - 1 : v_ref_i + self._patch_halfsize + 2,
                                       u_ref_i - self._patch_halfsize : u_ref_i + self._patch_halfsize + 1]
 
+            # inverse compositional
             dx = signal.correlate2d(img_patch_x, mask_x, mode='valid')
             dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
 
-            
+            # cache the jacobian
+            self._jacobian_cache[feature_counter] = ((np.matmul(dx.reshape(-1, 1), J_frm[None, 0])
+                                                    + np.matmul(dy.reshape(-1, 1), J_frm[None, 1]))
+                                                    * f / 2 ** self._level)
 
             feature_counter += 1
-
 
 
     def _compute_residuals(self, T, linearize_system, compute_weight_scale):

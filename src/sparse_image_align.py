@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import signal
 
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 from . import my_sophus as sp
@@ -88,13 +89,24 @@ class SparseImgAlign(NLLSSolver):
             
             subpix_u_ref = u_ref - u_ref_i
             subpix_v_ref = v_ref - v_ref_i
-            w_ref_tl = (1 - subpix_u_ref) * (1 - subpix_v_ref)
-            w_ref_tr = subpix_u_ref * (1 - subpix_v_ref)
-            w_ref_bl = (1 - subpix_u_ref) * subpix_v_ref
-            w_ref_br = subpix_u_ref * subpix_v_ref
+            w00 = (1 - subpix_u_ref) * (1 - subpix_v_ref)
+            w01 = subpix_u_ref * (1 - subpix_v_ref)
+            w10 = (1 - subpix_u_ref) * subpix_v_ref
+            w11 = subpix_u_ref * subpix_v_ref
             pixel_counter = 0
 
+            mask_x = np.array([[-w00, -w01, w00, w01],
+                               [-w00, -w01, w00, w01]], dtype=np.float64)
+            mask_y = mask_x.T
+            img_patch_x = img_ref[    v_ref_i - self._patch_halfsize : v_ref_i + self._patch_halfsize + 1,
+                                  u_ref_i - self._patch_halfsize - 1 : u_ref_i + self._patch_halfsize + 2]
+            img_patch_y = img_ref[v_ref_i - self._patch_halfsize - 1 : v_ref_i + self._patch_halfsize + 2,
+                                      u_ref_i - self._patch_halfsize : u_ref_i + self._patch_halfsize + 1]
 
+            dx = signal.correlate2d(img_patch_x, mask_x, mode='valid')
+            dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
+
+            
 
             feature_counter += 1
 

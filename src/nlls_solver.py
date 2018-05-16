@@ -38,8 +38,8 @@ class NLLSSolver(object):
         self._use_weight = False
 
         self._H = np.zeros((self.DIM, self.DIM), dtype=np.float32)      # Hessian approximation
-        self._Jres = np.zeros((self.DIM, 1), dtype=np.float32)          # Jacobian x Residual
-        self._x = np.zeros((self.DIM, 1), dtype=np.float32)             # update variable
+        self._Jres = np.zeros(self.DIM, dtype=np.float32)               # Jacobian x Residual
+        self._x = np.zeros(self.DIM, dtype=np.float32)                  # update variable
         self._have_prior = False
         self._chi2 = 0
 

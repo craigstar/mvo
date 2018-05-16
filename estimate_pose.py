@@ -34,7 +34,7 @@ for i in range(1):
                         )
 
     first_frame = Frame(cam, gray0, 0.0)
-    second_frame = Frame(cam, gray1, 0.0)
+    second_frame = Frame(cam, gray1, 1.0)
 
     ####### 3.0 initialize pose estimator #######
     s = time.time()

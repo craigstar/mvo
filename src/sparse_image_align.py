@@ -112,9 +112,9 @@ class SparseImgAlign(NLLSSolver):
             dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
 
             # cache the jacobian
-            self._jacobian_cache[i] = ((np.matmul(dx.reshape(-1, 1), J_frm[None, 0])
-                                                    + np.matmul(dy.reshape(-1, 1), J_frm[None, 1]))
-                                                    * f * scale)
+            self._jacobian_cache[i] = ((dx.reshape(-1, 1).dot(J_frm[None, 0])
+                                      + dy.reshape(-1, 1).dot(J_frm[None, 1]))
+                                      * f * scale)
 
         LOG_INFO('Precomputed', i, 'features for reference patch')
         self._have_ref_patch_cache = True
@@ -123,10 +123,10 @@ class SparseImgAlign(NLLSSolver):
     def _compute_residuals(self, T, linearize_system, compute_weight_scale):
         """
         T is T_cur_from_ref, linearize_system
-        ------------------
+        ---------------------
         In: (SE3, bool, bool)
         Out: float
-        ------------------
+        ---------------------
         """
         img_cur = self._frm_cur.img_pyr[self._level]
 
@@ -179,9 +179,13 @@ class SparseImgAlign(NLLSSolver):
             intensity_cur = signal.correlate2d(img_patch_intensity, mask_intensity, mode='valid').ravel()
             res = intensity_cur - self._ref_patch_cache[i]
             chi2 += (res**2).sum()
-
+            # print(res)
             if linearize_system:
-                pass
+                J = self._jacobian_cache[i]
+                self._H += J.T.dot(J)
+                self._Jres -= res.ravel().dot(J)
+
+        print(self._H)
 
         return chi2 / self._visible_fts.sum()
 

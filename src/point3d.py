@@ -11,4 +11,7 @@ class Point3d(object):
 
 	def add_frame_ref(self, feature):
 		self.fts.append(feature)
+
+	def __str__(self):
+		return str(self.pos)
 		

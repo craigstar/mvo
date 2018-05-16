@@ -63,14 +63,12 @@ class SparseImgAlign(NLLSSolver):
         border = self._patch_halfsize + 1
         img_ref = self._frm_ref.img_pyr[self._level]
         rows, cols = img_ref.shape
-        stride = cols
         scale = 1.0 / (2 ** self._level)
         pos_ref = self._frm_ref.pos()
         f = self._frm_ref.cam.get_focal_length()
-        feature_counter = 0
 
-        for ft in self._frm_ref.features:
-            u_ref, v_ref = ft.uv
+        for i, ft in enumerate(self._frm_ref.features):
+            u_ref, v_ref = ft.uv * scale
             u_ref_i, v_ref_i = int(u_ref), int(v_ref)
 
             if (not ft.point or
@@ -79,7 +77,7 @@ class SparseImgAlign(NLLSSolver):
                 # if no 3d point or point is outlier
                 continue
 
-            self._visible_fts[feature_counter] = True
+            self._visible_fts[i] = True
 
             # here we use depth instead of 3d coordinates to avoid reprojection error
             depth = np.linalg.norm(ft.point.pos - pos_ref)
@@ -95,23 +93,31 @@ class SparseImgAlign(NLLSSolver):
             w11 = subpix_u_ref * subpix_v_ref
 
             mask_x = np.array([[-w00, -w01, w00, w01],
-                               [-w00, -w01, w00, w01]], dtype=np.float64)
+                               [-w10, -w11, w10, w11]], dtype=np.float64)
             mask_y = mask_x.T
-            img_patch_x = img_ref[    v_ref_i - self._patch_halfsize : v_ref_i + self._patch_halfsize + 1,
+            mask_intensity = mask_x[:, 2:]
+
+            img_patch_x = img_ref[v_ref_i - self._patch_halfsize     : v_ref_i + self._patch_halfsize + 1,
                                   u_ref_i - self._patch_halfsize - 1 : u_ref_i + self._patch_halfsize + 2]
             img_patch_y = img_ref[v_ref_i - self._patch_halfsize - 1 : v_ref_i + self._patch_halfsize + 2,
-                                      u_ref_i - self._patch_halfsize : u_ref_i + self._patch_halfsize + 1]
+                                  u_ref_i - self._patch_halfsize     : u_ref_i + self._patch_halfsize + 1]
+            img_patch_intensity = img_ref[v_ref_i - self._patch_halfsize : v_ref_i + self._patch_halfsize + 1,
+                                          u_ref_i - self._patch_halfsize : u_ref_i + self._patch_halfsize + 1]
+
+            self._ref_patch_cache[i] = signal.correlate2d(
+                img_patch_intensity, mask_intensity, mode='valid').ravel()
 
             # inverse compositional
             dx = signal.correlate2d(img_patch_x, mask_x, mode='valid')
             dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
 
             # cache the jacobian
-            self._jacobian_cache[feature_counter] = ((np.matmul(dx.reshape(-1, 1), J_frm[None, 0])
+            self._jacobian_cache[i] = ((np.matmul(dx.reshape(-1, 1), J_frm[None, 0])
                                                     + np.matmul(dy.reshape(-1, 1), J_frm[None, 1]))
-                                                    * f / 2 ** self._level)
+                                                    * f * scale)
 
-            feature_counter += 1
+        LOG_INFO('Precomputed', i, 'features for reference patch')
+        self._have_ref_patch_cache = True
 
 
     def _compute_residuals(self, T, linearize_system, compute_weight_scale):
@@ -122,19 +128,62 @@ class SparseImgAlign(NLLSSolver):
         Out: float
         ------------------
         """
-        img = self._frm_cur.img_pyr[self._level]
+        img_cur = self._frm_cur.img_pyr[self._level]
 
         if linearize_system and self._display:
-            self._resimg = np.full(img.shape, 0, dtype=np.float32)
+            self._resimg = np.full(img_cur.shape, 0, dtype=np.float32)
 
         if not self._have_ref_patch_cache:
             self._precompute_reference_patches()
 
         if compute_weight_scale:
             # This is not the case for now
+            errors = np.zeros_like(self._visible_fts)
             pass
 
+        border = self._patch_halfsize + 1
+        rows, cols = img_cur.shape
+        scale = 1.0 / (2 ** self._level)
+        pos_ref = self._frm_ref.pos()
+        chi2 = 0.0
 
+        for i, ft in enumerate(self._frm_ref.features):
+            # check if point is visible in frame
+            if not self._visible_fts[i]:
+                continue
+
+            # here we use depth instead of 3d coordinates to avoid reprojection error
+            depth = np.linalg.norm(ft.point.pos - pos_ref)
+            xyz_ref = ft.direction * depth
+            xyz_cur = T * xyz_ref
+            u_cur, v_cur = self._frm_cur.cam.world2cam(xyz_cur) * scale
+            u_cur_i, v_cur_i = int(u_cur), int(v_cur)
+
+            if (u_cur_i - border < 0 or u_cur_i + border >= cols or
+                v_cur_i - border < 0 or v_cur_i + border >= rows):
+                # point not visible in current frame
+                continue
+
+            subpix_u_cur = u_cur - u_cur_i
+            subpix_v_cur = v_cur - v_cur_i
+            w00 = (1 - subpix_u_cur) * (1 - subpix_v_cur)
+            w01 = subpix_u_cur * (1 - subpix_v_cur)
+            w10 = (1 - subpix_u_cur) * subpix_v_cur
+            w11 = subpix_u_cur * subpix_v_cur
+
+            mask_intensity = np.array([[w00, w01],
+                                       [w10, w11]], dtype=np.float64)
+
+            img_patch_intensity = img_cur[v_cur_i - self._patch_halfsize : v_cur_i + self._patch_halfsize + 1,
+                                          u_cur_i - self._patch_halfsize : u_cur_i + self._patch_halfsize + 1]
+            intensity_cur = signal.correlate2d(img_patch_intensity, mask_intensity, mode='valid').ravel()
+            res = intensity_cur - self._ref_patch_cache[i]
+            chi2 += (res**2).sum()
+
+            if linearize_system:
+                pass
+
+        return chi2 / self._visible_fts.sum()
 
     def _solve(self):
         return True

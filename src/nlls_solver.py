@@ -50,6 +50,10 @@ class NLLSSolver(object):
         """Reset parameters and optimize again"""
         self._n_meas = 0
         self._n_iter = self._n_iter_init
+        self._have_prior = False
+        self._chi2 = 1e10
+        self._mu = self._mu_init
+        self._stop = False
 
     def optimize(self, model):
         """Optimize model by LEVENBERG_MARQUARDT or GAUSS_NEWTON"""
@@ -69,7 +73,7 @@ class NLLSSolver(object):
             LOG_INFO('Using weight scale')
             self._compute_residuals(model, False, True)
 
-        old_model = sp.SE3(model.matrix())
+        old_model = sp.SE3(model)
         LOG_INFO('Old model:\n', old_model)
 
         for i in range(self._n_iter):
@@ -83,6 +87,7 @@ class NLLSSolver(object):
             # calculate initial residuals
             self._n_meas = 0
             new_chi2 = self._compute_residuals(model, True, False)
+            print('new_chi2', new_chi2)
 
             # add prior estimate
             if self._have_prior:
@@ -96,6 +101,7 @@ class NLLSSolver(object):
                 self._stop = True
 
             # check if error has increased, roll model back when yes
+            print(new_chi2, self._chi2)
             if (i > 0 and new_chi2 > self._chi2) or self._stop:
                 LOG_ERROR('Iteration.', i, 'Failure. new_chi2 =', new_chi2, 'Error increased. Stop optimizing.')
                 model = old_model

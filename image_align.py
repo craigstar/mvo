@@ -40,3 +40,8 @@ init.add_second_frame(second_frame)
 
 img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
 img_align_n_tracked = img_align.run(second_frame, third_frame)
+
+print("Img Align:\t Tracked = ", img_align_n_tracked)
+print("first pose:", src.sp.SE3.log(first_frame.T_from_w))
+print("second pose:", second_frame.T_from_w)
+print("third pose:", third_frame.T_from_w)

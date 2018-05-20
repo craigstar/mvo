@@ -1,5 +1,7 @@
 import numpy as np
 from scipy import signal
+from scipy.linalg import cho_solve
+import sophus
 
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 from . import my_sophus as sp
@@ -36,13 +38,13 @@ class SparseImgAlign(NLLSSolver):
         """Computes T for current frame"""
         self.reset()
 
-        if not len(frm_ref.features):
+        N = len(frm_ref.features)
+        if not N:
             LOG_ERROR('SparseImgAlign: no features to track!')
 
         self._frm_ref = frm_ref
         self._frm_cur = frm_cur
 
-        N = len(frm_ref.features)
         self._ref_patch_cache.resize(N, self._patch_area)
         self._jacobian_cache.resize(N, self._patch_area, 6)
         self._visible_fts = np.full(N, False)
@@ -55,6 +57,9 @@ class SparseImgAlign(NLLSSolver):
             self._mu = 0.1
             self._have_ref_patch_cache = False
             self.optimize(T_cur_from_ref)
+            # print('level:', self._level)
+            break
+            
 
         frm_cur.T_from_w = T_cur_from_ref * frm_ref.T_from_w
         return self._n_meas / self._patch_area
@@ -110,6 +115,7 @@ class SparseImgAlign(NLLSSolver):
             # inverse compositional
             dx = signal.correlate2d(img_patch_x, mask_x, mode='valid')
             dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
+         
 
             # cache the jacobian
             self._jacobian_cache[i] = ((dx.reshape(-1, 1).dot(J_frm[None, 0])
@@ -119,7 +125,6 @@ class SparseImgAlign(NLLSSolver):
         LOG_INFO('Precomputed', i, 'features for reference patch')
         self._have_ref_patch_cache = True
 
-
     def _compute_residuals(self, T, linearize_system, compute_weight_scale):
         """
         T is T_cur_from_ref, linearize_system
@@ -128,6 +133,7 @@ class SparseImgAlign(NLLSSolver):
         Out: float
         ---------------------
         """
+        import cv2
         img_cur = self._frm_cur.img_pyr[self._level]
 
         if linearize_system and self._display:
@@ -146,7 +152,9 @@ class SparseImgAlign(NLLSSolver):
         scale = 1.0 / (2 ** self._level)
         pos_ref = self._frm_ref.pos()
         chi2 = 0.0
+        meas = 0
 
+        file = open('/Users/craigstar/Desktop/1uv.txt', 'w')
         for i, ft in enumerate(self._frm_ref.features):
             # check if point is visible in frame
             if not self._visible_fts[i]:
@@ -158,12 +166,18 @@ class SparseImgAlign(NLLSSolver):
             xyz_cur = T * xyz_ref
             u_cur, v_cur = self._frm_cur.cam.world2cam(xyz_cur) * scale
             u_cur_i, v_cur_i = int(u_cur), int(v_cur)
+            file.write('{}\n'.format(i))
+            file.write('{} T from w\n'.format(self._frm_ref.T_from_w))
+            file.write('{} inverse\n'.format(self._frm_ref.T_from_w.inverse()))
+            file.write('{} point ref\n'.format(pos_ref))
+            file.write('{} xyz_ref\n'.format(xyz_ref))
 
             if (u_cur_i - border < 0 or u_cur_i + border >= cols or
                 v_cur_i - border < 0 or v_cur_i + border >= rows):
                 # point not visible in current frame
                 continue
 
+            meas += 1
             subpix_u_cur = u_cur - u_cur_i
             subpix_v_cur = v_cur - v_cur_i
             w00 = (1 - subpix_u_cur) * (1 - subpix_v_cur)
@@ -174,26 +188,31 @@ class SparseImgAlign(NLLSSolver):
             mask_intensity = np.array([[w00, w01],
                                        [w10, w11]], dtype=np.float64)
 
-            img_patch_intensity = img_cur[v_cur_i - self._patch_halfsize : v_cur_i + self._patch_halfsize + 1,
-                                          u_cur_i - self._patch_halfsize : u_cur_i + self._patch_halfsize + 1]
-            intensity_cur = signal.correlate2d(img_patch_intensity, mask_intensity, mode='valid').ravel()
-            res = intensity_cur - self._ref_patch_cache[i]
-            chi2 += (res**2).sum()
-            # print(res)
-            if linearize_system:
-                J = self._jacobian_cache[i]
-                self._H += J.T.dot(J)
-                self._Jres -= res.ravel().dot(J)
+        #     img_patch_intensity = img_cur[v_cur_i - self._patch_halfsize : v_cur_i + self._patch_halfsize + 1,
+        #                                   u_cur_i - self._patch_halfsize : u_cur_i + self._patch_halfsize + 1]
+        #     intensity_cur = signal.correlate2d(img_patch_intensity, mask_intensity, mode='valid').ravel()
+        #     res = intensity_cur - self._ref_patch_cache[i]
+        #     chi2 += (res**2).sum()
 
-        print(self._H)
-
-        return chi2 / self._visible_fts.sum()
+        #     # print(res)
+        #     if linearize_system:
+        #         J = self._jacobian_cache[i]
+        #         self._H += J.T.dot(J)
+        #         self._Jres -= res.ravel().dot(J)
+        file.close()
+        return 1
 
     def _solve(self):
+        L = np.linalg.cholesky(self._H)
+        self._x = cho_solve((L, True), self._Jres)
+        if self._x[0] == float('nan'):
+            return False
         return True
 
     def _update(self, model):
-        pass
+        print(-self._x, 'self x')
+        print(sophus.SE3.exp(-self._x).matrix(), 'exp')
+        return model * sp.SE3.exp(-self._x)
 
     def _start_iteration(self):
         pass

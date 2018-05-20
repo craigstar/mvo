@@ -7,5 +7,6 @@ from .initialization import Initialization
 from .sparse_image_align import SparseImgAlign
 
 # For debug only
-if False:
+if True:
     from . import log
+    from . import my_sophus as sp

@@ -1,10 +1,9 @@
 import numpy as np
 from scipy import signal
 from scipy.linalg import cho_solve
-import sophus
+import sophus as sp
 
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
-from . import my_sophus as sp
 from .nlls_solver import NLLSSolver
 from .frame import Frame
 
@@ -211,7 +210,7 @@ class SparseImgAlign(NLLSSolver):
 
     def _update(self, model):
         print(-self._x, 'self x')
-        print(sophus.SE3.exp(-self._x).matrix(), 'exp')
+        print(sp.SE3.exp(-self._x).matrix(), 'exp')
         return model * sp.SE3.exp(-self._x)
 
     def _start_iteration(self):

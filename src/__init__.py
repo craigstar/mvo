@@ -9,4 +9,3 @@ from .sparse_image_align import SparseImgAlign
 # For debug only
 if True:
     from . import log
-    from . import my_sophus as sp

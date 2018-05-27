@@ -4,7 +4,7 @@ import cv2
 from .detector import GoodFeaturesDetector
 from .feature import Feature
 from .point3d import Point3d
-from . import my_sophus as sp
+import sophus as sp
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 from . import log
 
@@ -144,6 +144,7 @@ class Initialization(object):
             kps_ref, kps_cur, reprojection_threshold)
         
         # set T
+        print(sp.__file__)
         self.T_cur_from_ref = sp.SE3(R, t)
 
         # filter out outliers

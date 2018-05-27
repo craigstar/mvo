@@ -1,7 +1,7 @@
 import numpy as np
+import sophus as sp
 
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
-from . import my_sophus as sp
 
 
 class NLLSSolver(object):

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import itertools
 
-from . import my_sophus as sp
+import sophus as sp
 from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 
 class Frame(object):

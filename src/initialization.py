@@ -86,7 +86,7 @@ class Initialization(object):
                                         focal=718.856,
                                         pp=(607.1928, 185.2157),
                                         mask=mask)
-        return (R, t, mask.flatten() == 1)
+        return (R, t, mask.ravel() == 1)
 
     def _compose_projection(self, R, t):
         p_ref = self.frm_ref.cam.compose_P(np.eye(3), np.zeros((3, 1)))
@@ -97,7 +97,8 @@ class Initialization(object):
     def _triangulate_points(self, P_ref, P_cur, kps_ref, kps_cur):
         """Calculate 3d points"""
         pts3d_homo = cv2.triangulatePoints(P_ref, P_cur, kps_ref.T, kps_cur.T).T
-        return cv2.convertPointsFromHomogeneous(pts3d_homo).reshape((-1, 3))
+        pts3d = cv2.convertPointsFromHomogeneous(pts3d_homo)
+        return pts3d.reshape((-1, 3)).astype(np.float64)
 
     def _depth_check(self, pts3d, kps_ref, kps_cur):
         """Remove points have depth less than 1"""
@@ -107,7 +108,6 @@ class Initialization(object):
         return (pts3d, kps_ref, kps_cur)
 
     def add_first_frame(self, frame):
-        from time import time
         self._reset()
         self.kps_ref, self.dir_ref = self._detect_features(frame)
         LOG_INFO(len(self.kps_ref), 'features detected in 1st frame')
@@ -144,8 +144,7 @@ class Initialization(object):
             kps_ref, kps_cur, reprojection_threshold)
         
         # set T
-        print(sp.__file__)
-        self.T_cur_from_ref = sp.SE3(R, t)
+        self.T_cur_from_ref = sp.SE3(R, t.ravel())
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
@@ -167,7 +166,7 @@ class Initialization(object):
         ref_pos, cur_pos = self.frm_ref.pos(), frm_cur.pos()
         new_pos = ref_pos + scale * (cur_pos - ref_pos)
         translation = np.matmul(-frm_cur.T_from_w.rotationMatrix(), new_pos)
-        frm_cur.T_from_w = frm_cur.T_from_w.trans(translation)
+        frm_cur.T_from_w.setTranslation(translation)
         LOG_INFO('current pose:\n', frm_cur.T_from_w)
 
         # T to translate camera points to world coordinate

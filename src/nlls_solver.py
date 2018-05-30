@@ -37,9 +37,9 @@ class NLLSSolver(object):
 
         self._use_weight = False
 
-        self._H = np.zeros((self.DIM, self.DIM), dtype=np.float32)      # Hessian approximation
-        self._Jres = np.zeros(self.DIM, dtype=np.float32)               # Jacobian x Residual
-        self._x = np.zeros(self.DIM, dtype=np.float32)                  # update variable
+        self._H = np.zeros((self.DIM, self.DIM), dtype=np.float64)      # Hessian approximation
+        self._Jres = np.zeros(self.DIM, dtype=np.float64)               # Jacobian x Residual
+        self._x = np.zeros(self.DIM, dtype=np.float64)                  # update variable
         self._have_prior = False
         self._chi2 = 0
 
@@ -77,7 +77,6 @@ class NLLSSolver(object):
         LOG_INFO('Old model:\n', old_model)
 
         for i in range(self._n_iter):
-            print(i, 'iter', 'total: ', self._n_iter)
             self._rho = 0
             self._start_iteration()
 
@@ -87,7 +86,6 @@ class NLLSSolver(object):
             # calculate initial residuals
             self._n_meas = 0
             new_chi2 = self._compute_residuals(model, True, False)
-            print('new_chi2', new_chi2)
 
             # add prior estimate
             if self._have_prior:
@@ -101,7 +99,6 @@ class NLLSSolver(object):
                 self._stop = True
 
             # check if error has increased, roll model back when yes
-            print(new_chi2, self._chi2)
             if (i > 0 and new_chi2 > self._chi2) or self._stop:
                 LOG_ERROR('Iteration.', i, 'Failure. new_chi2 =', new_chi2, 'Error increased. Stop optimizing.')
                 model = old_model
@@ -113,7 +110,8 @@ class NLLSSolver(object):
             
             self._chi2 = new_chi2 
 
-            LOG_INFO('Iteration.', i, 'Success. new_chi2 =', new_chi2, 'n_meas=', self._n_meas)
+            LOG_INFO('Iteration.', i, 'Success. new_chi2 =', new_chi2,
+                'n_meas=', self._n_meas, 'x norm=', max(abs(self._x)))
 
             self._finish_iteration()
 

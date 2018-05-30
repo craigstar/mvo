@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import time
+import sophus as sp
 
 from src import Frame, PinholeCamera, SparseImgAlign
 import src
@@ -38,10 +39,19 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
+
+
+# tmp for debug
+b = np.array([-0.000700019, 0.00482854, -0.00345816, -0.000251848, 0.00178883, -0.042933])
+second_frame.T_from_w = sp.SE3.exp(b)
+
+
+
+
 img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
 img_align_n_tracked = img_align.run(second_frame, third_frame)
 
 print("Img Align:\t Tracked = ", img_align_n_tracked)
-print("first pose:", src.sp.SE3.log(first_frame.T_from_w))
+print("first pose:", first_frame.T_from_w)
 print("second pose:", second_frame.T_from_w)
 print("third pose:", third_frame.T_from_w)

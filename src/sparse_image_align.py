@@ -36,7 +36,6 @@ class SparseImgAlign(NLLSSolver):
     def run(self, frm_ref, frm_cur):
         """Computes T for current frame"""
         self.reset()
-
         N = len(frm_ref.features)
         if not N:
             LOG_ERROR('SparseImgAlign: no features to track!')
@@ -50,11 +49,12 @@ class SparseImgAlign(NLLSSolver):
 
         # identity matrix at initial
         T_cur_from_ref = sp.SE3(frm_cur.T_from_w * frm_ref.T_from_w.inverse())
-
+        import pdb; pdb.set_trace()
         for self._level in range(self._max_level, self._min_level - 1, -1):
             LOG_INFO("Pyramid level:", self._level)
             self._mu = 0.1
             self._have_ref_patch_cache = False
+            self._jacobian_cache.fill(0)
             self.optimize(T_cur_from_ref)
             print('level:', self._level)
             break

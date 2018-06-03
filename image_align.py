@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import time
 import sophus as sp
 
 from src import Frame, PinholeCamera, SparseImgAlign
@@ -39,19 +38,6 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
-
-
-# tmp for debug
-# b = np.array([-0.000700019, 0.00482854, -0.00345816, -0.000251848, 0.00178883, -0.042933])
-T = np.array([[0.99998236323097067,   0.0034564484332153672,   0.0048297195810387038, -0.00025184768675006765],
-               [- 0.0034598284905195077,     0.99999377557329561,  0.00069166572966620858,   0.0017888346447656627],
-               [- 0.0048272988118755545, -0.00070836353232518669,     0.99998809763281027,   -0.042933047769165435],
-               [0,                       0,                       0,                       1]])
-second_frame.T_from_w = sp.SE3(T)
-
-
-
-
 img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
 img_align_n_tracked = img_align.run(second_frame, third_frame)
 
@@ -59,3 +45,14 @@ print("Img Align:\t Tracked = ", img_align_n_tracked)
 print("first pose:", first_frame.T_from_w)
 print("second pose:", second_frame.T_from_w)
 print("third pose:", third_frame.T_from_w)
+
+
+
+# tmp for debug
+# b = np.array([-0.000700019, 0.00482854, -0.00345816, -0.000251848, 0.00178883, -0.042933])
+# bprime = np.array([-0.000251848, 0.00178883, -0.042933, -0.000700019, 0.00482854, -0.00345816])
+# T = np.array([[0.99998236323097067,   0.0034564484332153672,   0.0048297195810387038, -0.00025184768675006765],
+#                [- 0.0034598284905195077,     0.99999377557329561,  0.00069166572966620858,   0.0017888346447656627],
+#                [- 0.0048272988118755545, -0.00070836353232518669,     0.99998809763281027,   -0.042933047769165435],
+#                [0,                       0,                       0,                       1]])
+# second_frame.T_from_w = sp.SE3(T)

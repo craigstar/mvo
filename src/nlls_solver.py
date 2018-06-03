@@ -62,7 +62,7 @@ class NLLSSolver(object):
             self.LEVENBERG_MARQUARDT: self._ptimize_levenberg_marquardt
         }
 
-        opts[self._method](model)
+        return opts[self._method](model)
    
 
     def _optimize_gauss_newton(self, model):
@@ -74,7 +74,6 @@ class NLLSSolver(object):
             self._compute_residuals(model, False, True)
 
         old_model = sp.SE3(model)
-        LOG_INFO('Old model:\n', old_model)
 
         for i in range(self._n_iter):
             self._rho = 0
@@ -118,6 +117,8 @@ class NLLSSolver(object):
             # stop when converge, step is too small
             if max(abs(self._x)) < self._eps:
                 break
+        
+        return model
 
     def _ptimize_levenberg_marquardt(self, model):
         pass

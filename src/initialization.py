@@ -172,35 +172,19 @@ class Initialization(object):
         # T to translate camera points to world coordinate
         T_world_ref = self.frm_ref.T_from_w.inverse()
         pts3d_ref = T_world_ref * (pts3d * scale)
-        # for i in range(len(kps_ref)):
-        #     if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
-        #         self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
-        #         # create Point3d Feature, and add Feature to frame, to Point3d
-        #         new_point = Point3d(pts3d_ref[i])
-        #         feature_ref = Feature(self.frm_ref, kps_ref[i],
-        #                               pt3d=new_point,
-        #                               direction=dir_ref[i])
-        #         self.frm_ref.add_feature(feature_ref)
-        #         new_point.add_frame_ref(feature_ref)
-
-        #         feature_cur = Feature(self.frm_cur, kps_cur[i],
-        #                               pt3d=new_point,
-        #                               direction=dir_cur[i])
-        #         self.frm_cur.add_feature(feature_cur)
-        #         new_point.add_frame_ref(feature_cur)
-
-        with open('./feature.txt') as f:
-            for line in f:
-                line = line.strip()
-                # data = line.split(',')
-                data = np.fromstring(line, sep=',')
-
-
+        for i in range(len(kps_ref)):
+            if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
+                self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
-                new_point = Point3d(data[2:5])
-
-                feature_cur = Feature(self.frm_cur, data[:2],
+                new_point = Point3d(pts3d_ref[i])
+                feature_ref = Feature(self.frm_ref, kps_ref[i],
                                       pt3d=new_point,
-                                      direction=data[6:9])
+                                      direction=dir_ref[i])
+                self.frm_ref.add_feature(feature_ref)
+                new_point.add_frame_ref(feature_ref)
+
+                feature_cur = Feature(self.frm_cur, kps_cur[i],
+                                      pt3d=new_point,
+                                      direction=dir_cur[i])
                 self.frm_cur.add_feature(feature_cur)
                 new_point.add_frame_ref(feature_cur)

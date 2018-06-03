@@ -49,15 +49,13 @@ class SparseImgAlign(NLLSSolver):
 
         # identity matrix at initial
         T_cur_from_ref = sp.SE3(frm_cur.T_from_w * frm_ref.T_from_w.inverse())
-        import pdb; pdb.set_trace()
+
         for self._level in range(self._max_level, self._min_level - 1, -1):
             LOG_INFO("Pyramid level:", self._level)
             self._mu = 0.1
             self._have_ref_patch_cache = False
             self._jacobian_cache.fill(0)
-            self.optimize(T_cur_from_ref)
-            print('level:', self._level)
-            break
+            T_cur_from_ref = self.optimize(T_cur_from_ref)
             
 
         frm_cur.T_from_w = T_cur_from_ref * frm_ref.T_from_w
@@ -98,7 +96,8 @@ class SparseImgAlign(NLLSSolver):
 
             mask_x = np.array([[-w00, -w01, w00, w01],
                                [-w10, -w11, w10, w11]], dtype=np.float64)
-            mask_y = mask_x.T
+            mask_y = np.array([[-w00, -w10, w00, w10],
+                               [-w01, -w11, w01, w11]], dtype=np.float64).T
             mask_intensity = mask_x[:, 2:]
 
             img_patch_x = img_ref[v_ref_i - self._patch_halfsize     : v_ref_i + self._patch_halfsize + 1,
@@ -112,8 +111,8 @@ class SparseImgAlign(NLLSSolver):
                 img_patch_intensity, mask_intensity, mode='valid').ravel()
 
             # inverse compositional
-            dx = signal.correlate2d(img_patch_x, mask_x, mode='valid')
-            dy = signal.correlate2d(img_patch_y, mask_y, mode='valid')
+            dx = signal.correlate2d(img_patch_x, mask_x, mode='valid') * 0.5
+            dy = signal.correlate2d(img_patch_y, mask_y, mode='valid') * 0.5
          
 
             # cache the jacobian
@@ -193,7 +192,6 @@ class SparseImgAlign(NLLSSolver):
 
     def _solve(self):
         np.set_printoptions(linewidth=100)
-        print(self._H, 'H is')
         L = np.linalg.cholesky(self._H)
         self._x = cho_solve((L, True), self._Jres)
         if self._x[0] == float('nan'):

@@ -32,7 +32,7 @@ class Frame(object):
 
     def _create_img_pyramid(self, img_level_0, levels):
         self.img_pyr.append(img_level_0)
-        for i in range(levels):
+        for i in range(1, levels):
             self.img_pyr.append(self._half_sample(self.img_pyr[-1]))
 
     def _half_sample(self, img):

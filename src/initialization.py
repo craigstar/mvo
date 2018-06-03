@@ -37,7 +37,7 @@ class Initialization(object):
     def _detect_features(self, frame):
         rows, cols = frame.img.shape
         d = GoodFeaturesDetector(width=cols, height=rows,
-                                 cell_size=5, pyr_levels=3)
+                                 cell_size=25, pyr_levels=3)
         fts = d.detect(frame, frame.img_pyr, 0.01)
         
         positions = []
@@ -170,8 +170,8 @@ class Initialization(object):
         LOG_INFO('current pose:\n', frm_cur.T_from_w)
 
         # T to translate camera points to world coordinate
-        T_world_ref = self.frm_ref.T_from_w.inverse()
-        pts3d_ref = T_world_ref * (pts3d * scale)
+        T_world_cur = self.frm_cur.T_from_w.inverse()
+        pts3d_ref = T_world_cur * (pts3d * scale)
         for i in range(len(kps_ref)):
             if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):

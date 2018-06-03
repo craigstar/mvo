@@ -177,14 +177,14 @@ class Initialization(object):
                 self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
                 new_point = Point3d(pts3d_ref[i])
-                feature_ref = Feature(self.frm_ref, kps_ref[i],
-                                      pt3d=new_point,
-                                      direction=dir_ref[i])
-                self.frm_ref.add_feature(feature_ref)
-                new_point.add_frame_ref(feature_ref)
-
                 feature_cur = Feature(self.frm_cur, kps_cur[i],
                                       pt3d=new_point,
                                       direction=dir_cur[i])
                 self.frm_cur.add_feature(feature_cur)
                 new_point.add_frame_ref(feature_cur)
+
+                feature_ref = Feature(self.frm_ref, kps_ref[i],
+                                      pt3d=new_point,
+                                      direction=dir_ref[i])
+                self.frm_ref.add_feature(feature_ref)
+                new_point.add_frame_ref(feature_ref)

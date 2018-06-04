@@ -3,6 +3,8 @@
 import numpy as np
 import cv2
 import time
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 
 import src.log
 from src import Frame, PinholeCamera, Initialization
@@ -42,4 +44,14 @@ for i in range(1):
     e = time.time()
     init.add_second_frame(second_frame)
     print('time elapsed:', e-s)
-# print(init.dir_ref)
+
+    # pts = np.array([ft.point.pos for ft in second_frame.features if ft.point is not None])
+    # x, y, z = pts[:, 0], pts[:, 1], pts[:, 2]
+
+    # fig = plt.figure()
+    # ax = plt.subplot(111, projection='3d')
+    # ax.scatter(x, y, z, c='y')
+    # ax.set_zlabel('Z')  # 坐标轴
+    # ax.set_ylabel('Y')
+    # ax.set_xlabel('X')
+    # plt.show()

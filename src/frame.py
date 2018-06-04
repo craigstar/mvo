@@ -55,6 +55,18 @@ class Frame(object):
         # convert camera 3d corrdinate to camera 2d
         return self.cam.world2cam(xyz)
 
+    def remove_keypoint(self, feature):
+        found = False
+        for f in self.features:
+            if f == feature:
+                f = None
+                found = True
+        if found:
+            self.set_keypoints()
+        
+    def set_keypoints(self):
+        pass
+
     @staticmethod
     def jacobian_xyz2uv(xyz):
         x, y, z = xyz

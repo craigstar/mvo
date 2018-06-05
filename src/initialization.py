@@ -174,19 +174,15 @@ class Initialization(object):
         T_world_cur = self.frm_cur.T_from_w.inverse()
         pts3d_ref = T_world_cur * (pts3d * scale)
 
-        for i in range(len(kps_ref)):
-            if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
-                self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
+        for p3, kr, kc, dr, dc in zip(pts3d_ref, kps_ref, kps_cur, dir_ref, dir_cur):
+            if (self.frm_ref.cam.is_in_frame(kr, 10) and
+                self.frm_ref.cam.is_in_frame(kc, 10)):
                 # create Point3d Feature, and add Feature to frame, to Point3d
-                new_point = Point3d(pts3d_ref[i])
-                feature_cur = Feature(self.frm_cur, kps_cur[i],
-                                      pt3d=new_point,
-                                      direction=dir_cur[i])
+                new_point = Point3d(p3)
+                feature_cur = Feature(self.frm_cur, kc, pt3d=new_point, direction=dc)
                 self.frm_cur.add_feature(feature_cur)
                 new_point.add_frame_ref(feature_cur)
 
-                feature_ref = Feature(self.frm_ref, kps_ref[i],
-                                      pt3d=new_point,
-                                      direction=dir_ref[i])
+                feature_ref = Feature(self.frm_ref, kr, pt3d=new_point, direction=dr)
                 self.frm_ref.add_feature(feature_ref)
                 new_point.add_frame_ref(feature_ref)

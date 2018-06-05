@@ -100,12 +100,10 @@ class Initialization(object):
         pts3d = cv2.convertPointsFromHomogeneous(pts3d_homo)
         return pts3d.reshape((-1, 3)).astype(np.float64)
 
-    def _depth_check(self, pts3d, kps_ref, kps_cur):
+    def _depth_check(self, pts3d):
         """Remove points have depth less than 1"""
         valid_depth = pts3d[:, 2] > 0
-        pts3d = pts3d[valid_depth]
-        kps_ref, kps_cur = kps_ref[valid_depth], kps_cur[valid_depth]
-        return (pts3d, kps_ref, kps_cur)
+        return (pts3d[valid_depth], valid_depth)
 
     def add_first_frame(self, frame):
         self._reset()
@@ -148,11 +146,14 @@ class Initialization(object):
 
         # filter out outliers
         kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
+        dir_ref, dir_cur = dir_ref[mask], dir_cur[mask]
         LOG_INFO("Init: Essential RANSAC", np.sum(mask), "inliers.")
 
         P_ref, P_cur = self._compose_projection(R, t)
         pts3d = self._triangulate_points(P_ref, P_cur, kps_ref, kps_cur)
-        pts3d, kps_ref, kps_cur = self._depth_check(pts3d, kps_ref, kps_cur)
+        pts3d, mask = self._depth_check(pts3d)
+        kps_ref, kps_cur = kps_ref[mask], kps_cur[mask]
+        dir_ref, dir_cur = dir_ref[mask], dir_cur[mask]
         LOG_INFO('valid 3d points:', len(pts3d))
 
         # calculate scale
@@ -173,22 +174,19 @@ class Initialization(object):
         T_world_cur = self.frm_cur.T_from_w.inverse()
         pts3d_ref = T_world_cur * (pts3d * scale)
 
-        with open('./features2cpp.txt', 'w') as f:
-            for i in range(len(kps_ref)):
-                if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
-                    self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
-                    # create Point3d Feature, and add Feature to frame, to Point3d
-                    new_point = Point3d(pts3d_ref[i])
-                    feature_cur = Feature(self.frm_cur, kps_cur[i],
-                                          pt3d=new_point,
-                                          direction=dir_cur[i])
-                    self.frm_cur.add_feature(feature_cur)
-                    new_point.add_frame_ref(feature_cur)
+        for i in range(len(kps_ref)):
+            if (self.frm_ref.cam.is_in_frame(kps_ref[i], 10) and
+                self.frm_ref.cam.is_in_frame(kps_cur[i], 10)):
+                # create Point3d Feature, and add Feature to frame, to Point3d
+                new_point = Point3d(pts3d_ref[i])
+                feature_cur = Feature(self.frm_cur, kps_cur[i],
+                                      pt3d=new_point,
+                                      direction=dir_cur[i])
+                self.frm_cur.add_feature(feature_cur)
+                new_point.add_frame_ref(feature_cur)
 
-                    feature_ref = Feature(self.frm_ref, kps_ref[i],
-                                          pt3d=new_point,
-                                          direction=dir_ref[i])
-                    self.frm_ref.add_feature(feature_ref)
-                    new_point.add_frame_ref(feature_ref)
-                    f.write('{},{},{},{},{},{},{},{}\n'.format(*kps_cur[i], *pts3d_ref[i], *dir_cur[i]))
-
+                feature_ref = Feature(self.frm_ref, kps_ref[i],
+                                      pt3d=new_point,
+                                      direction=dir_ref[i])
+                self.frm_ref.add_feature(feature_ref)
+                new_point.add_frame_ref(feature_ref)

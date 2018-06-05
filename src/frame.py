@@ -15,7 +15,8 @@ class Frame(object):
         self.timestamp = timestamp
         self.img_pyr = []
         self.id = next(self.id_generator)
-        self.features = []
+        self.features = []                      # to store all features
+        self.keypoints = [None] * 5             # to store 5 key Features
         self.T_from_w = sp.SE3()
         self._init_frame(img)
 
@@ -65,7 +66,48 @@ class Frame(object):
             self.set_keypoints()
         
     def set_keypoints(self):
-        pass
+        for i in range(5):
+            if self.keypoints[i] is not None:
+                if self.keypoints[i].point is None:
+                    self.keypoints[i] = None
+        for ft in self.features:
+            if ft.point is not None:
+                self.check_keypoints(ft)
+
+    def check_keypoints(self, feature):
+        cu = self.cam.width // 2
+        cv = self.cam.height // 2
+        c = np.array([cu, cv])
+
+        # (0, 0) is at the top left corner
+        if (self.keypoints[0] is None or
+            np.abs(feature.uv - c).max() < np.abs(self.keypoints[0].uv - c).max()):
+            # set center key point
+            self.keypoints[0] = feature
+
+        if (np.all(feature.uv >= c)):
+            if (self.keypoints[1] is None or 
+                (feature.uv - c).prod() > (self.keypoints[1].uv - c).prod()):
+                # set bottom right key point
+                self.keypoints[1] = feature
+
+        elif feature.uv[0] >= cu and feature.uv[1] < cv:
+            if (self.keypoints[2] is None or 
+                (feature.uv - c).prod() < (self.keypoints[2].uv - c).prod()):
+                # set top right key point
+                self.keypoints[2] = feature
+
+        elif (np.all(feature.uv < c)):
+            if (self.keypoints[3] is None or 
+                (feature.uv - c).prod() > (self.keypoints[3].uv - c).prod()):
+                # set top left key point
+                self.keypoints[3] = feature
+
+        elif feature.uv[0] < cu and feature.uv[1] >= cv:
+            if (self.keypoints[4] is None or 
+                (feature.uv - c).prod() < (self.keypoints[4].uv - c).prod()):
+                # set bottom left key point
+                self.keypoints[4] = feature
 
     @staticmethod
     def jacobian_xyz2uv(xyz):

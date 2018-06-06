@@ -60,8 +60,13 @@ class Frame(object):
         found = False
         for f in self.features:
             if f == feature:
-                f = None
+                self.features.remove(f)
                 found = True
+
+        for i, f in enumerate(self.keypoints):
+            if f == feature:
+                self.keypoints[i] = None
+
         if found:
             self.set_keypoints()
         

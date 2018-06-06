@@ -38,8 +38,10 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
+first_frame.set_keypoints()
 
-# first_frame.set_keypoints()
+
+
 # for ft in first_frame.features:
 #     cv2.circle(img0, tuple(ft.uv), 2, (255, 0, 0), 1)
 # for kp in first_frame.keypoints:

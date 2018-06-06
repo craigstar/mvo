@@ -7,6 +7,11 @@ class Map(object):
         self.keyframes = []
         self.points = []
 
-    def get_close_keyframes(frame):
-        pass
+    def get_close_keyframes(self, frame):
+        close_kfs = []
+        for kf in self.keyframes:
+            for kp in kf.keypoints:
+                if kp is not None and frame.isvisible(kp.point.pos):
+                    dist = np.norm(frame.T_from_w.translation() - kf.T_from_w.translation())
+                    close_kfs.append((kf, dist))
         

@@ -12,6 +12,7 @@ class Map(object):
         for kf in self.keyframes:
             for kp in kf.keypoints:
                 if kp is not None and frame.isvisible(kp.point.pos):
-                    dist = np.norm(frame.T_from_w.translation() - kf.T_from_w.translation())
+                    dist = np.norm(frame.T_from_w.inverse().translation() - kf.T_from_w.inverse().translation())
                     close_kfs.append((kf, dist))
+                    break
         

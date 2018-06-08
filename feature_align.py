@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import sophus as sp
 
-from src import Frame, PinholeCamera, SparseImgAlign
+from src import Frame, PinholeCamera, SparseImgAlign, Map
 import src
 
 def getName(k):
@@ -38,10 +38,17 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
+# img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
+# img_align_n_tracked = img_align.run(second_frame, third_frame)
+
 first_frame.set_keypoints()
+second_frame.set_keypoints()
 
+m = Map()
+m.keyframes = [first_frame, second_frame]
+close_frames = m.get_close_keyframes(first_frame)
 
-
+print(close_frames)
 # for ft in first_frame.features:
 #     cv2.circle(img0, tuple(ft.uv), 2, (255, 0, 0), 1)
 # for kp in first_frame.keypoints:

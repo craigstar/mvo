@@ -42,6 +42,14 @@ class Frame(object):
         cols = int(cols / 2)
         return cv2.resize(img, (cols, rows))
 
+    def isvisible(self, xyz_world):
+        xyz = self.T_from_w * xyz_world.copy()
+        if xyz[2] > 0:
+            uv = self.f2c(xyz)
+            if uv[0] >= 0 and uv[1] >= 0 and uv[0] < self.cam.width and uv[1] < self.cam.height:
+                return True
+        return False
+
     def add_feature(self, feature):
         self.features.append(feature)
 

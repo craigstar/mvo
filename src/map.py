@@ -8,11 +8,14 @@ class Map(object):
         self.points = []
 
     def get_close_keyframes(self, frame):
+        # TODO: this includes keyframe itself
         close_kfs = []
         for kf in self.keyframes:
             for kp in kf.keypoints:
                 if kp is not None and frame.isvisible(kp.point.pos):
-                    dist = np.norm(frame.T_from_w.inverse().translation() - kf.T_from_w.inverse().translation())
+                    dist = np.linalg.norm(frame.T_from_w.inverse().translation()
+                         - kf.T_from_w.inverse().translation())
                     close_kfs.append((kf, dist))
                     break
+        return close_kfs
         

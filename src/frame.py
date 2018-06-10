@@ -13,6 +13,7 @@ class Frame(object):
         self.cam = cam
         self.img = img
         self.timestamp = timestamp
+        self.iskey = False                      # is key frame or not
         self.img_pyr = []
         self.id = next(self.id_generator)
         self.features = []                      # to store all features
@@ -86,6 +87,10 @@ class Frame(object):
         for ft in self.features:
             if ft.point is not None:
                 self.check_keypoints(ft)
+
+    def set_keyframe(self):
+        self.iskey = True
+        self.set_keypoints()
 
     def check_keypoints(self, feature):
         cu = self.cam.width // 2

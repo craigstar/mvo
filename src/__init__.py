@@ -7,6 +7,7 @@ from .initialization import Initialization
 from .sparse_image_align import SparseImgAlign
 from .map import Map
 from .config import Config
+from .reprojector import Reprojector
 
 # For debug only
 if True:

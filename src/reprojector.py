@@ -1,4 +1,4 @@
-import random
+import numpy as np
 import copy
 
 from .config import Config
@@ -14,7 +14,7 @@ class Reprojector(object):
 
     class Grid(object):
         """docstring for Grid"""
-        def __init__(self, point, uv):
+        def __init__(self):
             self.cell_size = 0
             self.grid_cols = 0
             self.grid_rows = 0
@@ -46,9 +46,9 @@ class Reprojector(object):
         self.grid.rows = int(self.cam.height / self.grid.cell_size)
 
         # TODO:
-        self.grid.cells = [() for i in range(self.grid.cols * self.grid.rows)]
-        self.grid.cell_order = range(len(self.grid.cells))
-        random.shuffle(self.grid.cell_order)
+        self.grid.cells = [None for i in range(self.grid.cols * self.grid.rows)]
+        self.grid.cell_order = np.arange(len(self.grid.cells))
+        np.random.shuffle(self.grid.cell_order)
 
     def reproject_point(self, frame, point3d):
         return False

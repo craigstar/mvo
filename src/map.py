@@ -1,4 +1,5 @@
 import numpy as np
+from .frame import Frame
 
 
 class Map(object):
@@ -19,3 +20,8 @@ class Map(object):
                     break
         return close_kfs
         
+    def add_keyframe(self, frame):
+        if isinstance(frame, Frame):
+            self.keyframes.append(frame)
+            return 0
+        return -1

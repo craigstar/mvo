@@ -13,7 +13,7 @@ def getName(k):
     return (name0 + sufix, name1 + sufix, name2 + sufix)
 
 
-path = '../../dataset/sequences/00/image_0/'
+path = '../slam/dataset/sequences/00/image_0/'
 init = src.Initialization()
 
 ####### 1.0 read images #######
@@ -38,22 +38,23 @@ third_frame = Frame(cam, gray2, 0.0)
 init.add_first_frame(first_frame)
 init.add_second_frame(second_frame)
 
-# img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
-# img_align_n_tracked = img_align.run(second_frame, third_frame)
+img_align = src.SparseImgAlign(4, 1, 30, SparseImgAlign.GAUSS_NEWTON, False, False)
+img_align_n_tracked = img_align.run(second_frame, third_frame)
 
 points_map = Map()
-# first_frame.set_keyframe()
-# second_frame.set_keyframe()
+first_frame.set_keyframe()
+second_frame.set_keyframe()
 
-# points_map.add_keyframe(first_frame)
-# points_map.add_keyframe(second_frame)
+points_map.add_keyframe(first_frame)
+points_map.add_keyframe(second_frame)
 
 
 # close_frames = points_map.get_close_keyframes(first_frame)
 
 reprojector = Reprojector(cam, points_map)
+overlap_kfs = reprojector.reproject_map(third_frame)
 
-
+print(overlap_kfs)
 # print(close_frames)
 # for ft in first_frame.features:
 #     cv2.circle(img0, tuple(ft.uv), 2, (255, 0, 0), 1)

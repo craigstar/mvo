@@ -18,8 +18,8 @@ class Reprojector(object):
             self.cell_size = 0
             self.grid_cols = 0
             self.grid_rows = 0
-            self.cells = []
-            self.cell_order = []
+            self.cells = None
+            self.cell_order = None
 
     class Options(object):
         """docstring for Options"""
@@ -46,11 +46,17 @@ class Reprojector(object):
         self.grid.rows = int(self.cam.height / self.grid.cell_size)
 
         # TODO:
-        self.grid.cells = [None for i in range(self.grid.cols * self.grid.rows)]
+        self.grid.cells = [[] for i in range(self.grid.cols * self.grid.rows)]
         self.grid.cell_order = np.arange(len(self.grid.cells))
         np.random.shuffle(self.grid.cell_order)
 
     def reproject_point(self, frame, point3d):
+        uv_cur = frame.w2c(point3d.pos.copy())
+        if frame.cam.is_in_frame(uv_cur, 8):
+            k = int(uv_cur[1] // self.grid.cell_size * self.grid.cols
+                  + uv_cur[0] // self.grid.cell_size)
+            self.grid.cells[k].append(Reprojector.Candidate(point3d, uv_cur))
+            return True
         return False
 
     def reproject_map(self, frame):
@@ -72,21 +78,11 @@ class Reprojector(object):
                 if ft.point is None:
                     continue
 
-                # make sure project only once
-                if frm_ref.point.last_project_kf_id == frame.id:
+                # make sure one 3d point projects only once
+                if ft.point.last_project_kf_id == frame.id:
                     continue
+                ft.point.last_project_kf_id = frame.id
 
-                frm_ref.point.last_project_kf_id = frame.id
-
-                if self.reproject_point(frm_ref, frm_ref.point):
+                if self.reproject_point(frm_ref, ft.point):
                     overlap_kfs[frm_ref] += 1
-
-
-
-
-
-
-
-
-
-
+        return overlap_kfs

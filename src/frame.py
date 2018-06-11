@@ -65,6 +65,10 @@ class Frame(object):
         # convert camera 3d corrdinate to camera 2d
         return self.cam.world2cam(xyz)
 
+    def w2c(self, pos):
+        # convert world 3d corrdinate to camera 2d
+        return self.cam.world2cam(self.T_from_w * pos)
+
     def remove_keypoint(self, feature):
         found = False
         for f in self.features:

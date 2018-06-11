@@ -16,4 +16,7 @@ class Feature(object):
 		self.point = pt3d			# Point3d object or None
 		self.direction = direction if len(direction) else frame.c2f(uv) # feature point direction, (0, 0, 0)
 
+	def __str__(self):
+		return 'Feature ({:0.2f}, {:0.2f}) @level: {}'.format(*self.uv, self.level)
+
 		

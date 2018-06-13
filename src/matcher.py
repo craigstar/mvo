@@ -36,6 +36,7 @@ class Matcher(object):
 
     def warp_affine(self, A_cur_ref, img_ref, px_ref, level_ref,
                     search_level, half_patch_size, patch):
+        cols, rows, _* = img_ref.shape
         patch_size = half_patch_size * 2
         A_ref_cur = np.linalg.inv(A_cur_ref)
         if np.isnan(A)[0, 0]:
@@ -43,5 +44,26 @@ class Matcher(object):
             return
 
         px_ref_pyr = px_ref / (2 ** level_ref)
-        for i in range(patch_size):
-            
+        for y in range(patch_size):
+            for x in range(patch_size):
+                px_patch = np.array([x - half_patch_size, y - half_patch_size])
+                px_patch *= (2 ** search_level)
+                px_x, px_y = A_ref_cur.dot(px_patch) + px_ref_pyr
+                if px_x < 0 or px_y < 0 or px_x >= cols -1 or px_y > rows - 1:
+                    pass
+                else:
+                    self.interpolate(img_ref, px_x, px_y)
+
+
+    def interpolate(self, img, u, v):
+        x, y = int(u), int(v)
+        subpix_x, subpix_y = u - x, v - y
+
+        w00 = (1.0 - subpix_x) * (1.0 - subpix_y)
+        w01 = (1.0 - subpix_x) * subpix_y
+        w10 = subpix_x * (1.0 - subpix_y)
+        w11 = 1.0 - w00 - w01 - w10
+        w = np.array([[w00, w10], [w01, w11]])
+        
+        patch = img[y:y+2, x:x+2]
+        return (patch * w).sum()

@@ -5,7 +5,14 @@ from .log import LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_CRITICAL
 class Matcher(object):
     """docstring for Matcher"""
     def __init__(self, arg):
-        pass
+        self.half_patch_size = 4
+        self.patch_size = 8
+        self.patch_with_border = None
+
+    def create_patch_from_patch_with_border(self):
+        start = (10 - self.patch_size) // 2
+        end = 10 - start
+        self.patch = self.patch_with_border[start:end, start:end]
 
     def get_warp_matrix_affine(self, cam_ref, cam_cur,
                                px_ref, f_ref, depth_ref,
@@ -35,7 +42,7 @@ class Matcher(object):
         return search_level
 
     def warp_affine(self, A_cur_ref, img_ref, px_ref, level_ref,
-                    search_level, half_patch_size, patch):
+                    search_level, half_patch_size):
         cols, rows, _* = img_ref.shape
         patch_size = half_patch_size * 2
         A_ref_cur = np.linalg.inv(A_cur_ref)
@@ -43,17 +50,17 @@ class Matcher(object):
             LOG_ERROR("Affine warp is NaN, probably camera has no translation")
             return
 
+        patch = np.zeros((patch_size, patch_size), dtype=np.uint8)      # image pixel
         px_ref_pyr = px_ref / (2 ** level_ref)
         for y in range(patch_size):
             for x in range(patch_size):
                 px_patch = np.array([x - half_patch_size, y - half_patch_size])
                 px_patch *= (2 ** search_level)
                 px_x, px_y = A_ref_cur.dot(px_patch) + px_ref_pyr
-                if px_x < 0 or px_y < 0 or px_x >= cols -1 or px_y > rows - 1:
-                    pass
-                else:
-                    self.interpolate(img_ref, px_x, px_y)
-
+                if not (px_x < 0 or px_x >= cols - 1 or
+                        px_y < 0 or px_y >= rows - 1):
+                    patch[x, y] = self.interpolate(img_ref, px_x, px_y)
+        return patch
 
     def interpolate(self, img, u, v):
         x, y = int(u), int(v)
